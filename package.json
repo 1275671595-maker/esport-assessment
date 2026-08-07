@@ -1,0 +1,13 @@
+{
+  "name": "esport-assessment-platform",
+  "version": "1.0.0",
+  "description": "电竞考核匹配平台 - 考生考官匹配系统",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
+  }
+}

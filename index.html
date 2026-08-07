@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电竞考核匹配平台</title>
+<style>
+/* ========== Reset & Base ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #818cf8;
+  --primary-bg: #eef2ff;
+  --success: #10b981;
+  --success-bg: #d1fae5;
+  --warning: #f59e0b;
+  --warning-bg: #fef3c7;
+  --danger: #ef4444;
+  --danger-bg: #fee2e2;
+  --info: #3b82f6;
+  --info-bg: #dbeafe;
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --border: #e2e8f0;
+  --border-dark: #cbd5e1;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.08), 0 2px 4px -2px rgba(0,0,0,.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.1), 0 8px 10px -6px rgba(0,0,0,.04);
+  --game-delta: #f59e0b;
+  --game-delta-bg: #fffbeb;
+  --game-valorant: #ef4444;
+  --game-valorant-bg: #fef2f2;
+  --game-lol: #3b82f6;
+  --game-lol-bg: #eff6ff;
+}
+html { font-size: 15px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, select, textarea { font-family: inherit; font-size: inherit; }
+a { color: var(--primary); text-decoration: none; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ========== Navbar ========== */
+.navbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow);
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; font-size: 1.15rem; font-weight: 700; color: var(--text); }
+.nav-brand .logo {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.2rem;
+}
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.nav-role-badge { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: .85rem; font-weight: 600; }
+.nav-role-badge.examinee { background: var(--primary-bg); color: var(--primary-dark); }
+.nav-role-badge.examiner { background: var(--success-bg); color: var(--success); }
+.nav-user { font-size: .9rem; color: var(--text-muted); font-weight: 500; }
+.nav-btn { padding: 7px 14px; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; color: var(--text-muted); border: 1px solid var(--border); transition: all .2s; }
+.nav-btn:hover { color: var(--text); border-color: var(--border-dark); }
+.nav-btn.highlight { color: var(--primary); border-color: var(--primary-light); }
+.nav-btn.highlight:hover { background: var(--primary-bg); }
+.sync-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; color: var(--success); font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--success-bg); }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+.main { flex: 1; padding: 28px 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+/* ========== Role Selection ========== */
+.role-select { min-height: calc(100vh - 64px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; }
+.role-select h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, var(--primary), var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.role-select .subtitle { color: var(--text-muted); margin-bottom: 40px; font-size: 1.05rem; }
+.role-cards { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+.role-card { width: 320px; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-lg); padding: 36px 28px; text-align: center; cursor: pointer; transition: all .3s; position: relative; overflow: hidden; }
+.role-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--primary); transform: scaleX(0); transition: transform .3s; }
+.role-card.examiner-card::before { background: var(--success); }
+.role-card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.role-card.examiner-card:hover { border-color: var(--success); }
+.role-card:hover::before { transform: scaleX(1); }
+.role-card .icon { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 20px; }
+.role-card .icon.examinee { background: var(--primary-bg); }
+.role-card .icon.examiner { background: var(--success-bg); }
+.role-card h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+.role-card p { color: var(--text-muted); font-size: .9rem; line-height: 1.6; }
+.role-card .features { margin-top: 20px; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.role-card .features li { list-style: none; display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--text-muted); }
+.role-card .features li::before { content: '\2713'; color: var(--success); font-weight: 700; }
+
+/* ========== Tabs ========== */
+.tabs { display: flex; gap: 4px; background: var(--surface); padding: 6px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; width: fit-content; flex-wrap: wrap; }
+.tab { padding: 10px 24px; border-radius: var(--radius-sm); font-size: .9rem; font-weight: 600; color: var(--text-muted); transition: all .2s; display: flex; align-items: center; gap: 6px; }
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--primary); color: #fff; }
+.tab .count { background: rgba(255,255,255,.25); padding: 1px 8px; border-radius: 10px; font-size: .75rem; min-width: 20px; text-align: center; }
+.tab:not(.active) .count { background: var(--bg); color: var(--text-muted); }
+
+/* ========== Stats ========== */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 16px; }
+.stat-card .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+.stat-card .stat-info .stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
+.stat-card .stat-info .stat-label { font-size: .8rem; color: var(--text-muted); }
+
+/* ========== Filter ========== */
+.filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+.filter-group { display: flex; gap: 6px; background: var(--surface); padding: 4px; border-radius: var(--radius-sm); box-shadow: var(--shadow); }
+.filter-btn { padding: 7px 16px; border-radius: 6px; font-size: .85rem; font-weight: 600; color: var(--text-muted); transition: all .2s; }
+.filter-btn:hover { color: var(--text); }
+.filter-btn.active { background: var(--primary); color: #fff; }
+
+/* ========== Cards ========== */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
+.booking-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; transition: all .2s; border: 1px solid transparent; position: relative; overflow: hidden; }
+.booking-card:hover { box-shadow: var(--shadow-md); border-color: var(--border); }
+.booking-card .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.game-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: .8rem; font-weight: 600; }
+.game-tag.delta { background: var(--game-delta-bg); color: var(--game-delta); }
+.game-tag.valorant { background: var(--game-valorant-bg); color: var(--game-valorant); }
+.game-tag.lol { background: var(--game-lol-bg); color: var(--game-lol); }
+
+.assess-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+.assess-tag.entertainment { background: var(--warning-bg); color: #92400e; }
+.assess-tag.companion { background: var(--primary-bg); color: var(--primary-dark); }
+.assess-tag.escort { background: var(--success-bg); color: #065f46; }
+.assess-tag.mode { background: var(--info-bg); color: #1e40af; }
+.assess-tag.tier { background: #fae8ff; color: #86198f; }
+
+.gender-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; background: #f0f9ff; color: #0369a1; }
+.platform-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; background: #f5f3ff; color: #6d28d9; }
+
+.status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+.status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+.status-pending { background: var(--warning-bg); color: #92400e; }
+.status-pending::before { background: var(--warning); }
+.status-accepted { background: var(--info-bg); color: #1e40af; }
+.status-accepted::before { background: var(--info); }
+.status-assessing { background: var(--primary-bg); color: var(--primary-dark); }
+.status-assessing::before { background: var(--primary); animation: pulse 1.5s infinite; }
+.status-completed { background: var(--success-bg); color: #065f46; }
+.status-completed::before { background: var(--success); }
+.status-cancelled { background: #f1f5f9; color: var(--text-muted); }
+.status-cancelled::before { background: var(--text-muted); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+.booking-card .card-body { margin-bottom: 14px; }
+.booking-card .info-row { display: flex; align-items: center; gap: 8px; font-size: .88rem; margin-bottom: 6px; }
+.booking-card .info-row .label { color: var(--text-light); min-width: 64px; font-size: .82rem; }
+.booking-card .info-row .value { color: var(--text); font-weight: 500; }
+.booking-card .card-notes { font-size: .85rem; color: var(--text-muted); background: var(--surface-alt); padding: 8px 12px; border-radius: var(--radius-sm); margin-top: 8px; border-left: 3px solid var(--border-dark); }
+.booking-card .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--border); }
+.booking-card .card-time { font-size: .8rem; color: var(--text-light); }
+.card-actions { display: flex; gap: 8px; }
+
+/* ========== Buttons ========== */
+.btn { padding: 8px 18px; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #059669; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #dc2626; }
+.btn-outline { border: 1px solid var(--border-dark); color: var(--text); background: var(--surface); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-ghost { color: var(--text-muted); }
+.btn-ghost:hover { color: var(--text); background: var(--surface-alt); }
+.btn-sm { padding: 5px 12px; font-size: .8rem; }
+.btn-lg { padding: 12px 28px; font-size: .95rem; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ========== Empty State ========== */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: .4; }
+.empty-state h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.empty-state p { font-size: .9rem; }
+
+/* ========== Form ========== */
+.form-container { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 32px; max-width: 680px; margin: 0 auto; }
+.form-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 6px; }
+.form-desc { color: var(--text-muted); font-size: .9rem; margin-bottom: 28px; }
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.form-label .required { color: var(--danger); }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--border-dark); border-radius: var(--radius-sm);
+  font-size: .9rem; color: var(--text); background: var(--surface); transition: border-color .2s, box-shadow .2s; outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.form-hint { font-size: .8rem; color: var(--text-light); margin-top: 6px; }
+
+/* Option cards (game / gender / platform / assessment type) */
+.option-grid { display: grid; gap: 10px; }
+.option-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.option-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.option-card {
+  border: 2px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center;
+  cursor: pointer; transition: all .2s; background: var(--surface);
+}
+.option-card:hover { border-color: var(--border-dark); }
+.option-card.selected { border-color: var(--primary); background: var(--primary-bg); }
+.option-card .opt-icon { font-size: 1.5rem; margin-bottom: 4px; }
+.option-card .opt-name { font-size: .82rem; font-weight: 600; }
+.option-card .opt-desc { font-size: .72rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ========== Criteria Panel ========== */
+.criteria-panel {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.criteria-panel.companion-bg { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border-color: #c7d2fe; }
+.criteria-panel.escort-bg { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-color: #6ee7b7; }
+.criteria-panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.criteria-panel-header .cp-icon { font-size: 1.3rem; }
+.criteria-panel-header .cp-title { font-size: 1rem; font-weight: 700; }
+.criteria-panel-header .cp-tier { font-size: .8rem; font-weight: 600; color: var(--primary-dark); background: rgba(255,255,255,.7); padding: 2px 10px; border-radius: 12px; }
+.criteria-account-req {
+  background: rgba(255,255,255,.6); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px;
+  font-size: .85rem; color: #92400e; display: flex; align-items: center; gap: 8px;
+}
+.criteria-account-req.info-color { color: var(--primary-dark); }
+.criteria-checklist { display: flex; flex-direction: column; gap: 8px; }
+.criteria-item { display: flex; align-items: flex-start; gap: 8px; font-size: .88rem; color: var(--text); }
+.criteria-item .ci-icon { color: var(--success); font-weight: 700; flex-shrink: 0; }
+.criteria-note {
+  margin-top: 10px; padding: 8px 12px; background: rgba(239,68,68,.1); border-radius: var(--radius-sm);
+  font-size: .82rem; color: #991b1b; display: flex; align-items: center; gap: 6px;
+}
+
+/* ========== Modal ========== */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-xl); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; transform: scale(.95); transition: transform .2s; }
+.modal.large { max-width: 760px; }
+.modal-overlay.show .modal { transform: scale(1); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.modal-header h3 { font-size: 1.15rem; font-weight: 700; }
+.modal-close { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.2rem; transition: all .2s; }
+.modal-close:hover { background: var(--surface-alt); color: var(--text); }
+.modal-body { padding: 24px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--border); }
+
+/* ========== Stars ========== */
+.score-display { display: flex; align-items: center; gap: 4px; }
+.score-stars { color: #f59e0b; font-size: 1rem; letter-spacing: 2px; }
+.score-stars .empty { color: var(--border-dark); }
+.score-value { font-size: .85rem; font-weight: 600; color: var(--text); margin-left: 4px; }
+.star-rating { display: flex; gap: 4px; }
+.star-rating .star { font-size: 1.8rem; color: var(--border-dark); cursor: pointer; transition: color .15s; }
+.star-rating .star:hover, .star-rating .star.hover { color: #f59e0b; }
+.star-rating .star.active { color: #f59e0b; }
+
+/* ========== Detail ========== */
+.detail-section { background: var(--surface-alt); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px; }
+.detail-section h4 { font-size: .85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+.detail-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: .9rem; }
+.detail-row .label { color: var(--text-light); min-width: 80px; font-size: .85rem; }
+.detail-row .value { color: var(--text); font-weight: 500; flex: 1; }
+.feedback-box { background: var(--surface); border-radius: var(--radius-sm); padding: 14px; font-size: .9rem; color: var(--text); line-height: 1.7; border: 1px solid var(--border); }
+
+/* ========== Criteria Reference ========== */
+.criteria-ref-section { margin-bottom: 24px; }
+.criteria-ref-section > h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.criteria-ref-card { border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+.criteria-ref-card.entertainment { background: var(--warning-bg); border: 1px solid #fde68a; }
+.criteria-ref-card.escort { background: var(--success-bg); border: 1px solid #6ee7b7; }
+.criteria-ref-card.companion { background: var(--primary-bg); border: 1px solid #c7d2fe; }
+.criteria-ref-card h4 { font-size: .95rem; font-weight: 700; margin-bottom: 6px; }
+.criteria-ref-card .ref-desc { font-size: .85rem; color: var(--text-muted); margin-bottom: 10px; }
+.criteria-ref-card .ref-account { font-size: .82rem; color: var(--primary-dark); background: rgba(255,255,255,.6); padding: 6px 12px; border-radius: var(--radius-sm); margin-bottom: 10px; }
+.tier-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 12px; }
+.tier-card { background: var(--surface); border-radius: var(--radius-sm); padding: 14px; border: 1px solid var(--border); }
+.tier-card .tier-name { font-size: .9rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.tier-card .tier-item { font-size: .82rem; color: var(--text); margin-bottom: 4px; display: flex; gap: 6px; }
+.tier-card .tier-item::before { content: '\2022'; color: var(--text-light); }
+.tier-card .tier-note { font-size: .78rem; color: var(--danger); margin-top: 6px; font-weight: 500; }
+.mode-label { font-size: .85rem; font-weight: 600; color: var(--text-muted); margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+
+/* Precautions / Notes */
+.precautions-box {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-top: 16px;
+}
+.precautions-box .pa-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  font-size: 1rem; font-weight: 700; color: #991b1b;
+}
+.precautions-box .pa-item {
+  display: flex; align-items: flex-start; gap: 8px; font-size: .85rem; color: #7f1d1d;
+  margin-bottom: 10px; line-height: 1.6;
+}
+.precautions-box .pa-item:last-child { margin-bottom: 0; }
+.precautions-box .pa-icon { flex-shrink: 0; font-size: 1rem; }
+.precautions-box .pa-num {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+  background: #ef4444; color: #fff; font-size: .72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ========== Toast ========== */
+.toast-container { position: fixed; top: 80px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--surface); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); padding: 12px 20px; font-size: .9rem; font-weight: 500; display: flex; align-items: center; gap: 10px; min-width: 280px; animation: toastIn .3s ease; border-left: 4px solid var(--primary); }
+.toast.success { border-left-color: var(--success); }
+.toast.error { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+.toast .toast-icon { font-size: 1.2rem; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.toast.removing { animation: toastOut .3s ease forwards; }
+@keyframes toastOut { to { opacity: 0; transform: translateX(20px); } }
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  .nav-brand span { display: none; }
+  .nav-user { display: none; }
+  .main { padding: 16px 12px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .cards-grid { grid-template-columns: 1fr; }
+  .form-row, .form-row-3 { grid-template-columns: 1fr; }
+  .option-grid.cols-3, .option-grid.cols-2 { grid-template-columns: 1fr; }
+  .tabs { width: 100%; overflow-x: auto; }
+  .role-cards { flex-direction: column; }
+  .role-card { width: 100%; max-width: 340px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ============================================================
+   电竞考核匹配平台 — 完整版
+   ============================================================ */
+
+// ========== Game Config ==========
+const GAMES = {
+  delta: { name: '三角洲行动', icon: '🔫', color: 'delta', ranks: ['青铜','白银','黄金','铂金','钻石','大师','宗师'] },
+  valorant: { name: '无畏契约', icon: '🎯', color: 'valorant', ranks: ['铁','铜','银','金','铂金','钻石','超凡','神话','辐能'] },
+  lol: { name: '英雄联盟', icon: '⚔️', color: 'lol', ranks: ['黑铁','青铜','白银','黄金','铂金','翡翠','钻石','大师','宗师','王者'] }
+};
+
+const STATUS = {
+  pending: { label: '待接单', class: 'status-pending' },
+  accepted: { label: '已接单', class: 'status-accepted' },
+  assessing: { label: '考核中', class: 'status-assessing' },
+  completed: { label: '已完成', class: 'status-completed' },
+  cancelled: { label: '已取消', class: 'status-cancelled' }
+};
+
+// ========== Delta Force Assessment Criteria ==========
+const DELTA_CRITERIA = {
+  entertainment: {
+    label: '娱乐考核',
+    icon: '🎮',
+    shortLabel: '娱乐',
+    desc: '仅限女，熟悉地图和游戏机制，和考官打一局',
+    genderReq: 'female',
+    accountReq: null,
+    mode: null,
+    tiers: null,
+    checklist: [
+      '仅限女性考生',
+      '要求熟悉地图和游戏机制',
+      '和考官打一局（地图三张里抽取一张）'
+    ],
+    note: null
+  },
+  companion: {
+    label: '陪玩/护航考核',
+    icon: '🎯',
+    shortLabel: '陪玩护航',
+    desc: '过此要求陪玩和护航都可以接',
+    genderReq: 'any',
+    accountReq: '考核账号赛季初需黑鹰4以上，赛季末需巅峰，KD不得低于1.5',
+    modes: {
+      single: {
+        label: '单考',
+        tiers: {
+          1: { name: '一档（娱技）', checklist: ['绝密3局', '至少撤离1局', '13杀'], note: '仅可女生' },
+          2: { name: '二档（技术）', checklist: ['绝密3局', '至少撤离1局', '18杀', '累计带出价值400万'], note: null },
+          3: { name: '三档（大神）', checklist: ['绝密3局', '至少撤离2局', '23杀', '累计带出价值800万'], note: null },
+          4: { name: '四档（明星）', checklist: ['绝密3局', '至少撤离2局', '三局28杀', '累计带出价值1000w'], note: '仅接受在职大神升档考核（平台主播和FPS职业背景可直考）' }
+        }
+      },
+      dual: {
+        label: '双考',
+        tiers: {
+          1: { name: '一档（娱技）', checklist: ['带考官3局（绝密）', '至少撤离1局', '累计18杀', '至少带考官累计400万撤离'], note: '仅可女生' },
+          2: { name: '二档（技术）', checklist: ['带考官3局（绝密）', '至少撤离2局', '累计23杀', '至少带考官累计1000万撤离'], note: null },
+          3: { name: '三档（大神）', checklist: ['带考官3局（绝密）', '至少撤离2局', '累计28杀', '至少带考官累计1600万撤离一把'], note: null },
+          4: { name: '四档（明星）', checklist: ['带考官3局（绝密）', '至少撤离2局', '累计33杀', '累计2000w物资'], note: '仅接受在职大神升档考核（平台主播和FPS职业背景可直考）' }
+        }
+      }
+    }
+  }
+};
+
+// ========== Delta Force Exam Notes (Precautions) ==========
+const DELTA_NOTES = [
+  { icon: '📹', text: '考试期间需要全程使用外设录手和电脑屏幕，考核通过后继续拍摄机箱和电脑桌面（禁止一切作弊行为）。一档（娱技）考生禁用六套awm' },
+  { icon: '💰', text: '考核首次免费，后续每次补考费20元' },
+  { icon: '🗺️', text: '考试地图（禁长弓溪谷，永夜大坝可兼容机密接单）由考生选择，考官干员只会选择女医生且只会对考生进行少量的帮助，考官全程听从考生指挥' },
+  { icon: '⚖️', text: '考官会根据考生表现和服务态度适当放宽需求（例：考生双考技术杀了21个，但意识与服务态度特别让考官满意，也会给予通过；反之即使杀够了，全程无沟通无交流也不会给予通过）' }
+];
+
+// Get criteria for a specific booking
+function getCriteriaForBooking(b) {
+  if (b.game !== 'delta' || !b.assessmentType) return null;
+  const cfg = DELTA_CRITERIA[b.assessmentType];
+  if (!cfg) return null;
+  if (b.assessmentType === 'companion' && b.assessmentMode && b.assessmentTier) {
+    const modeCfg = cfg.modes[b.assessmentMode];
+    const tierCfg = modeCfg.tiers[b.assessmentTier];
+    return {
+      label: cfg.label,
+      icon: cfg.icon,
+      tierName: tierCfg.name,
+      modeLabel: modeCfg.label,
+      accountReq: cfg.accountReq,
+      checklist: tierCfg.checklist,
+      note: tierCfg.note
+    };
+  }
+  return {
+    label: cfg.label,
+    icon: cfg.icon,
+    tierName: null,
+    modeLabel: cfg.mode === 'dual' ? '双考' : null,
+    accountReq: cfg.accountReq,
+    checklist: cfg.checklist,
+    note: cfg.note
+  };
+}
+
+// ========== Storage (Dual Mode: API + localStorage fallback) ==========
+const SESSION_KEY = 'esport_assessment_session_v2';
+const STORAGE_KEY = 'esport_assessment_bookings_v2';
+function loadSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null; } catch { return null; } }
+function saveSession(data) { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); }
+function loadBookingsLocal() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+function saveBookingsLocal(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+let USE_API = false;
+const API = '/api/bookings';
+
+async function detectApiMode() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch('/api/health', { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const data = await res.json();
+      USE_API = data.status === 'ok';
+    }
+  } catch { USE_API = false; }
+  return USE_API;
+}
+
+async function fetchBookings() {
+  if (USE_API) {
+    try {
+      const res = await fetch(API);
+      const data = await res.json();
+      state.bookings = Array.isArray(data) ? data : [];
+      render();
+      return;
+    } catch (e) {
+      console.error('API fetch failed, falling back:', e);
+    }
+  }
+  state.bookings = loadBookingsLocal();
+  render();
+}
+
+async function createBookingData(booking) {
+  if (USE_API) {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(booking)
+    });
+    if (!res.ok) throw new Error('Create failed');
+    return res.json();
+  } else {
+    const newBooking = { ...booking, id: uid(), status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: Date.now() };
+    state.bookings.unshift(newBooking);
+    saveBookingsLocal(state.bookings);
+    return newBooking;
+  }
+}
+
+async function actionBooking(id, action, body) {
+  if (USE_API) {
+    const res = await fetch(`${API}/${id}/${action}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Action failed');
+    }
+    return res.json();
+  } else {
+    const b = state.bookings.find(x => x.id === id);
+    if (!b) throw new Error('Booking not found');
+    if (action === 'accept') { b.status = 'accepted'; b.examinerName = body.examinerName; b.examinerContact = body.examinerContact; b.acceptedAt = Date.now(); }
+    else if (action === 'start') { b.status = 'assessing'; b.assessingAt = Date.now(); }
+    else if (action === 'complete') { b.status = 'completed'; b.score = body.score; b.feedback = body.feedback; b.completedAt = Date.now(); }
+    else if (action === 'cancel') { b.status = 'cancelled'; }
+    saveBookingsLocal(state.bookings);
+    return b;
+  }
+}
+
+async function refreshAfterAction() {
+  if (USE_API) { await fetchBookings(); }
+  else { render(); }
+}
+
+function updateSyncBadge() {
+  const badge = document.getElementById('syncBadge');
+  if (!badge) return;
+  if (USE_API) {
+    badge.innerHTML = '<span class="sync-dot"></span>多设备同步';
+    badge.style.color = 'var(--success)';
+    badge.style.background = 'var(--success-bg)';
+    badge.title = '后端已连接，考官和考生数据实时同步';
+  } else {
+    badge.innerHTML = '<span class="sync-dot" style="background:var(--warning);animation:none"></span>单设备模式';
+    badge.style.color = 'var(--warning)';
+    badge.style.background = 'var(--warning-bg)';
+    badge.title = '后端未连接，数据仅保存在当前浏览器。部署后端后可多设备同步';
+  }
+}
+
+// ========== State ==========
+let state = {
+  bookings: [],
+  session: loadSession(),
+  currentTab: 'create',
+  filterGame: 'all',
+  editingScore: 0,
+  form: { game: '', gender: '', platform: '', assessmentType: '', assessmentMode: '', assessmentTier: 0 }
+};
+
+// ========== Utility ==========
+function uid() { return 'BK' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,6).toUpperCase(); }
+function fmtFullTime(ts) {
+  if (!ts) return '--';
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return Math.floor(diff/60000) + '分钟前';
+  if (diff < 86400000) return Math.floor(diff/3600000) + '小时前';
+  return Math.floor(diff/86400000) + '天前';
+}
+
+// ========== Toast ==========
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { info: '\u2139\ufe0f', success: '\u2705', error: '\u274c', warning: '\u26a0\ufe0f' };
+  el.innerHTML = `<span class="toast-icon">${icons[type]||icons.info}</span><span>${msg}</span>`;
+  c.appendChild(el);
+  setTimeout(() => { el.classList.add('removing'); setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ========== Render ==========
+function render() {
+  const app = document.getElementById('app');
+  if (!state.session) { app.innerHTML = renderRoleSelection(); return; }
+  app.innerHTML = renderNav() + `<div class="main">${renderContent()}</div>`;
+  updateSyncBadge();
+}
+
+function renderNav() {
+  const { role, name } = state.session;
+  const roleLabel = role === 'examinee' ? '考生' : '考官';
+  const roleIcon = role === 'examinee' ? '\ud83c\udf93' : '\ud83d\udccb';
+  return `
+    <nav class="navbar">
+      <div class="nav-brand">
+        <div class="logo">\ud83c\udfae</div>
+        <span>电竞考核匹配平台</span>
+      </div>
+      <div class="nav-right">
+        <span class="sync-badge" id="syncBadge" title="数据同步状态"><span class="sync-dot"></span>检测中...</span>
+        <button class="nav-btn highlight" onclick="showCriteriaRef()">\ud83d\udccd 考核标准</button>
+        <div class="nav-role-badge ${role}"><span>${roleIcon}</span><span>${roleLabel}</span></div>
+        <div class="nav-user">${name}</div>
+        <button class="nav-btn" onclick="switchRole()">切换身份</button>
+      </div>
+    </nav>
+  `;
+}
+
+function renderContent() {
+  return state.session.role === 'examinee' ? renderExaminee() : renderExaminer();
+}
+
+// ========== Role Selection ==========
+function renderRoleSelection() {
+  return `
+    <div class="role-select">
+      <h1>\ud83c\udfae 电竞考核匹配平台</h1>
+      <p class="subtitle">三角洲行动 \u00b7 无畏契约 \u00b7 英雄联盟 \u2014 考生考官一键匹配</p>
+      <div class="role-cards">
+        <div class="role-card" onclick="selectRole('examinee')">
+          <div class="icon examinee">\ud83c\udf93</div>
+          <h3>我是考生</h3>
+          <p>提交考核申请，等待考官接单，完成游戏考核评估</p>
+          <ul class="features">
+            <li>填写考核信息，一键预约</li>
+            <li>实时查看预约状态</li>
+            <li>查看考官评价与得分</li>
+          </ul>
+        </div>
+        <div class="role-card examiner-card" onclick="selectRole('examiner')">
+          <div class="icon examiner">\ud83d\udccb</div>
+          <h3>我是考官</h3>
+          <p>浏览考核大厅，接单考核，为考生提供专业评估</p>
+          <ul class="features">
+            <li>浏览考生订单，自由接单</li>
+            <li>管理考核进度</li>
+            <li>评分与反馈，沉淀考核记录</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+let selectedExaminerGames = [];
+
+function selectRole(role) {
+  const label = role === 'examinee' ? '考生' : '考官';
+  selectedExaminerGames = [];
+  showModal(`
+    <div class="modal-header">
+      <h3>${label}身份登记</h3>
+      <button class="modal-close" onclick="closeModal()">\u00d7</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">昵称 <span class="required">*</span></label>
+        <input type="text" class="form-input" id="roleName" placeholder="请输入您的昵称" maxlength="20">
+      </div>
+      <div class="form-group">
+        <label class="form-label">联系方式 <span class="required">*</span></label>
+        <input type="text" class="form-input" id="roleContact" placeholder="QQ号或微信号" maxlength="30">
+      </div>
+      ${role === 'examiner' ? `
+      <div class="form-group">
+        <label class="form-label">擅长游戏 <span class="required">*</span></label>
+        <div class="option-grid cols-3" id="examinerGames">
+          ${Object.entries(GAMES).map(([k, g]) => `
+            <div class="option-card" data-game="${k}" onclick="toggleExaminerGame(this)">
+              <div class="opt-icon">${g.icon}</div>
+              <div class="opt-name">${g.name}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmRole('${role}')">确定</button>
+    </div>
+  `);
+}
+
+function toggleExaminerGame(el) {
+  el.classList.toggle('selected');
+  selectedExaminerGames = Array.from(document.querySelectorAll('#examinerGames .option-card.selected')).map(e => e.dataset.game);
+}
+
+function confirmRole(role) {
+  const name = document.getElementById('roleName').value.trim();
+  const contact = document.getElementById('roleContact').value.trim();
+  if (!name) { toast('请输入昵称', 'error'); return; }
+  if (!contact) { toast('请输入联系方式', 'error'); return; }
+  if (role === 'examiner' && selectedExaminerGames.length === 0) { toast('请至少选择一个擅长游戏', 'error'); return; }
+  state.session = { role, name, contact, games: role === 'examiner' ? selectedExaminerGames : null, loginAt: Date.now() };
+  saveSession(state.session);
+  state.currentTab = role === 'examinee' ? 'create' : 'hall';
+  closeModal();
+  toast(`欢迎，${name}！`, 'success');
+  render();
+}
+
+function switchRole() {
+  showConfirm('确定要切换身份吗？当前会话将结束。', () => {
+    state.session = null;
+    saveSession(null);
+    render();
+  });
+}
+
+// ========== Examinee View ==========
+function renderExaminee() {
+  const my = state.bookings.filter(b => b.examineeContact === state.session.contact);
+  const pending = my.filter(b => b.status === 'pending').length;
+  const active = my.filter(b => ['accepted','assessing'].includes(b.status)).length;
+  const done = my.filter(b => b.status === 'completed').length;
+
+  return `
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon" style="background:var(--warning-bg);color:var(--warning)">\u23f3</div><div class="stat-info"><div class="stat-value">${pending}</div><div class="stat-label">待接单</div></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:var(--primary-bg);color:var(--primary)">\ud83c\udfae</div><div class="stat-info"><div class="stat-value">${active}</div><div class="stat-label">考核中</div></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:var(--success-bg);color:var(--success)">\u2705</div><div class="stat-info"><div class="stat-value">${done}</div><div class="stat-label">已完成</div></div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab ${state.currentTab==='create'?'active':''}" onclick="setTab('create')">📝 发起预约</button>
+      <button class="tab ${state.currentTab==='list'?'active':''}" onclick="setTab('list')">📋 我的预约 <span class="count">${my.length}</span></button>
+    </div>
+    ${state.currentTab === 'create' ? renderBookingForm() : renderExamineeBookings(my)}
+  `;
+}
+
+function renderBookingForm() {
+  // Reset form state
+  state.form = { game: '', gender: '', platform: '', assessmentType: '', assessmentMode: '', assessmentTier: 0 };
+
+  return `
+    <div class="form-container">
+      <h2 class="form-title">发起考核预约</h2>
+      <p class="form-desc">填写以下信息，提交后考官将在大厅看到您的预约并接单</p>
+      <form id="bookingForm" onsubmit="submitBooking(event)">
+        <!-- Game -->
+        <div class="form-group">
+          <label class="form-label">选择游戏 <span class="required">*</span></label>
+          <div class="option-grid cols-3" id="gameSelect">
+            ${Object.entries(GAMES).map(([k, g]) => `
+              <div class="option-card" data-game="${k}" onclick="selectGame('${k}')">
+                <div class="opt-icon">${g.icon}</div>
+                <div class="opt-name">${g.name}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Gender & Platform -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">性别 <span class="required">*</span></label>
+            <div class="option-grid cols-2" id="genderSelect">
+              <div class="option-card" data-val="male" onclick="selectOption('gender','male',this)"><div class="opt-icon">👨</div><div class="opt-name">男</div></div>
+              <div class="option-card" data-val="female" onclick="selectOption('gender','female',this)"><div class="opt-icon">👩</div><div class="opt-name">女</div></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">端游/手游 <span class="required">*</span></label>
+            <div class="option-grid cols-2" id="platformSelect">
+              <div class="option-card" data-val="pc" onclick="selectOption('platform','pc',this)"><div class="opt-icon">🖥️</div><div class="opt-name">端游</div></div>
+              <div class="option-card" data-val="mobile" onclick="selectOption('platform','mobile',this)"><div class="opt-icon">📱</div><div class="opt-name">手游</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rank & Game ID -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">当前段位 <span class="required">*</span></label>
+            <select class="form-select" id="rankInput" required disabled><option value="">请先选择游戏</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">游戏ID <span class="required">*</span></label>
+            <input type="text" class="form-input" id="gameIdInput" placeholder="游戏内ID" required maxlength="30">
+          </div>
+        </div>
+
+        <!-- Server & Time -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">游戏大区/服务器 <span class="required">*</span></label>
+            <input type="text" class="form-input" id="serverInput" placeholder="如：微信Q区 / 电信一区" required maxlength="30">
+          </div>
+          <div class="form-group">
+            <label class="form-label">期望考核时间 <span class="required">*</span></label>
+            <input type="datetime-local" class="form-input" id="timeInput" required>
+          </div>
+        </div>
+
+        <!-- Delta-specific Assessment Section -->
+        <div id="deltaAssessSection" style="display:none;">
+          <div style="border-top:1px solid var(--border);margin:8px 0 24px;padding-top:8px;">
+            <h3 style="font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:4px;">🔫 三角洲行动考核类型</h3>
+            <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:16px;">选择考核类型和档位，系统将展示对应考核标准</p>
+          </div>
+
+          <!-- Assessment Type -->
+          <div class="form-group">
+            <label class="form-label">考核类型 <span class="required">*</span></label>
+            <div class="option-grid cols-2" id="assessTypeSelect">
+              <div class="option-card" data-val="entertainment" onclick="selectAssessmentType('entertainment',this)">
+                <div class="opt-icon">🎮</div><div class="opt-name">娱乐考核</div>
+                <div class="opt-desc">仅限女</div>
+              </div>
+              <div class="option-card" data-val="companion" onclick="selectAssessmentType('companion',this)">
+                <div class="opt-icon">🎯</div><div class="opt-name">陪玩/护航</div>
+                <div class="opt-desc">可接陪玩和护航</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mode & Tier (companion only) -->
+          <div id="companionFields" style="display:none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">单考/双考 <span class="required">*</span></label>
+                <div class="option-grid cols-2" id="modeSelect">
+                  <div class="option-card" data-val="single" onclick="selectAssessmentMode('single',this)"><div class="opt-icon">1️⃣</div><div class="opt-name">单考</div></div>
+                  <div class="option-card" data-val="dual" onclick="selectAssessmentMode('dual',this)"><div class="opt-icon">2️⃣</div><div class="opt-name">双考</div></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">考核档位 <span class="required">*</span></label>
+                <div class="option-grid cols-2" id="tierSelect" style="pointer-events:none;opacity:.4;">
+                  <div class="option-card" data-val="1" onclick="selectAssessmentTier(1,this)"><div class="opt-name">一档（娱技）</div></div>
+                  <div class="option-card" data-val="2" onclick="selectAssessmentTier(2,this)"><div class="opt-name">二档（技术）</div></div>
+                  <div class="option-card" data-val="3" onclick="selectAssessmentTier(3,this)"><div class="opt-name">三档（大神）</div></div>
+                  <div class="option-card" data-val="4" onclick="selectAssessmentTier(4,this)"><div class="opt-name">四档（明星）</div></div>
+                </div>
+              </div>
+            </div>
+            <!-- Account Info -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">赛季段位 <span class="required">*</span></label>
+                <input type="text" class="form-input" id="seasonRankInput" placeholder="如：黑鹰5 / 巅峰" maxlength="20">
+              </div>
+              <div class="form-group">
+                <label class="form-label">KD <span class="required">*</span></label>
+                <input type="number" class="form-input" id="kdInput" placeholder="如：1.8" step="0.01" min="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Criteria Panel -->
+          <div id="criteriaPanel"></div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label class="form-label">备注说明</label>
+          <textarea class="form-textarea" id="notesInput" placeholder="补充信息，如擅长位置、武器/英雄偏好、特殊需求等" maxlength="500"></textarea>
+        </div>
+
+        <div style="display:flex;gap:12px;">
+          <button type="submit" class="btn btn-primary btn-lg" style="flex:1">提交预约</button>
+          <button type="button" class="btn btn-outline btn-lg" onclick="setTab('list')">查看我的预约</button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+// ========== Form Selection Handlers ==========
+function selectGame(gameKey) {
+  document.querySelectorAll('#gameSelect .option-card').forEach(el => {
+    el.classList.toggle('selected', el.dataset.game === gameKey);
+  });
+  state.form.game = gameKey;
+  const rankSelect = document.getElementById('rankInput');
+  rankSelect.disabled = false;
+  rankSelect.innerHTML = '<option value="">请选择段位</option>' + GAMES[gameKey].ranks.map(r => `<option value="${r}">${r}</option>`).join('');
+  // Show/hide delta assessment section
+  const deltaSection = document.getElementById('deltaAssessSection');
+  deltaSection.style.display = gameKey === 'delta' ? 'block' : 'none';
+  // Reset delta form selections
+  state.form.assessmentType = '';
+  state.form.assessmentMode = '';
+  state.form.assessmentTier = 0;
+  document.querySelectorAll('#assessTypeSelect .option-card, #modeSelect .option-card, #tierSelect .option-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById('companionFields').style.display = 'none';
+  document.getElementById('criteriaPanel').innerHTML = '';
+}
+
+function selectOption(field, val, el) {
+  document.querySelectorAll(`#${field}Select .option-card`).forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  state.form[field] = val;
+  // Re-validate if entertainment selected with male gender
+  if (field === 'gender' && state.form.assessmentType === 'entertainment' && val === 'male') {
+    toast('娱乐考核仅限女性考生', 'warning');
+  }
+  // Re-validate if companion tier 1 selected with male gender
+  if (field === 'gender' && state.form.assessmentType === 'companion' && state.form.assessmentTier === 1 && val === 'male') {
+    toast('一档（娱技）仅可女生报考', 'warning');
+  }
+  updateCriteriaPanel();
+}
+
+function selectAssessmentType(type, el) {
+  // Gender check for entertainment
+  if (type === 'entertainment' && state.form.gender === 'male') {
+    toast('娱乐考核仅限女性考生，请先选择性别为女', 'warning');
+    return;
+  }
+  document.querySelectorAll('#assessTypeSelect .option-card').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  state.form.assessmentType = type;
+  state.form.assessmentMode = '';
+  state.form.assessmentTier = 0;
+  // Show companion fields
+  const companionFields = document.getElementById('companionFields');
+  companionFields.style.display = type === 'companion' ? 'block' : 'none';
+  // Reset mode and tier selections
+  document.querySelectorAll('#modeSelect .option-card, #tierSelect .option-card').forEach(e => e.classList.remove('selected'));
+  document.getElementById('tierSelect').style.pointerEvents = 'none';
+  document.getElementById('tierSelect').style.opacity = '.4';
+  updateCriteriaPanel();
+}
+
+function selectAssessmentMode(mode, el) {
+  document.querySelectorAll('#modeSelect .option-card').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  state.form.assessmentMode = mode;
+  state.form.assessmentTier = 0;
+  // Enable tier selection
+  const tierSelect = document.getElementById('tierSelect');
+  tierSelect.style.pointerEvents = 'auto';
+  tierSelect.style.opacity = '1';
+  document.querySelectorAll('#tierSelect .option-card').forEach(e => e.classList.remove('selected'));
+  updateCriteriaPanel();
+}
+
+function selectAssessmentTier(tier, el) {
+  document.querySelectorAll('#tierSelect .option-card').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  state.form.assessmentTier = tier;
+  // Tier 1 (娱技) female-only warning
+  if (tier === 1 && state.form.gender === 'male') {
+    toast('一档（娱技）仅可女生报考，请更换档位或性别', 'warning');
+  }
+  updateCriteriaPanel();
+}
+
+function updateCriteriaPanel() {
+  const panel = document.getElementById('criteriaPanel');
+  const { assessmentType, assessmentMode, assessmentTier } = state.form;
+  if (!assessmentType) { panel.innerHTML = ''; return; }
+
+  const cfg = DELTA_CRITERIA[assessmentType];
+  const notesHtml = renderPrecautionsHtml();
+
+  // For companion, need mode and tier
+  if (assessmentType === 'companion') {
+    if (!assessmentMode || !assessmentTier) {
+      panel.innerHTML = `
+        <div class="criteria-panel companion-bg">
+          <div class="criteria-panel-header">
+            <span class="cp-icon">${cfg.icon}</span>
+            <span class="cp-title">${cfg.label}</span>
+          </div>
+          <p style="font-size:.85rem;color:var(--text-muted);">${cfg.desc}</p>
+          ${cfg.accountReq ? `<div class="criteria-account-req info-color">📋 ${cfg.accountReq}</div>` : ''}
+          <p style="font-size:.82rem;color:var(--text-light);margin-top:8px;">请选择「单考/双考」和「考核档位」查看具体考核标准</p>
+        </div>
+        ${notesHtml}
+      `;
+      return;
+    }
+    const modeCfg = cfg.modes[assessmentMode];
+    const tierCfg = modeCfg.tiers[assessmentTier];
+    panel.innerHTML = `
+      <div class="criteria-panel companion-bg">
+        <div class="criteria-panel-header">
+          <span class="cp-icon">${cfg.icon}</span>
+          <span class="cp-title">${cfg.label}</span>
+          <span class="cp-tier">${modeCfg.label} \u00b7 ${tierCfg.name}</span>
+        </div>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:10px;">${cfg.desc}</p>
+        ${cfg.accountReq ? `<div class="criteria-account-req info-color">📋 ${cfg.accountReq}</div>` : ''}
+        <div class="criteria-checklist">
+          ${tierCfg.checklist.map(item => `<div class="criteria-item"><span class="ci-icon">\u2713</span><span>${item}</span></div>`).join('')}
+        </div>
+        ${tierCfg.note ? `<div class="criteria-note">⚠️ ${tierCfg.note}</div>` : ''}
+      </div>
+      ${notesHtml}
+    `;
+    return;
+  }
+
+  // Entertainment (no mode/tier needed)
+  panel.innerHTML = `
+    <div class="criteria-panel">
+      <div class="criteria-panel-header">
+        <span class="cp-icon">${cfg.icon}</span>
+        <span class="cp-title">${cfg.label}</span>
+      </div>
+      <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:10px;">${cfg.desc}</p>
+      ${cfg.accountReq ? `<div class="criteria-account-req">📋 ${cfg.accountReq}</div>` : ''}
+      <div class="criteria-checklist">
+        ${cfg.checklist.map(item => `<div class="criteria-item"><span class="ci-icon">\u2713</span><span>${item}</span></div>`).join('')}
+      </div>
+      ${cfg.note ? `<div class="criteria-note">⚠️ ${cfg.note}</div>` : ''}
+    </div>
+    ${notesHtml}
+  `;
+}
+
+// Helper: render precautions HTML
+function renderPrecautionsHtml() {
+  return `
+    <div class="precautions-box">
+      <div class="pa-header">⚠️ 注意事项</div>
+      ${DELTA_NOTES.map((n, i) => `
+        <div class="pa-item">
+          <span class="pa-num">${i + 1}</span>
+          <span class="pa-icon">${n.icon}</span>
+          <span>${n.text}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ========== Submit Booking ==========
+async function submitBooking(e) {
+  e.preventDefault();
+  const game = state.form.game;
+  if (!game) { toast('请选择游戏', 'error'); return; }
+  const gender = state.form.gender;
+  if (!gender) { toast('请选择性别', 'error'); return; }
+  const platform = state.form.platform;
+  if (!platform) { toast('请选择端游/手游', 'error'); return; }
+  const rank = document.getElementById('rankInput').value;
+  const gameId = document.getElementById('gameIdInput').value.trim();
+  const server = document.getElementById('serverInput').value.trim();
+  const preferredTime = document.getElementById('timeInput').value;
+  const notes = document.getElementById('notesInput').value.trim();
+
+  if (!rank) { toast('请选择段位', 'error'); return; }
+  if (!gameId) { toast('请输入游戏ID', 'error'); return; }
+  if (!server) { toast('请输入大区/服务器', 'error'); return; }
+  if (!preferredTime) { toast('请选择期望考核时间', 'error'); return; }
+
+  // Delta-specific validation
+  let assessmentType = null, assessmentMode = null, assessmentTier = null, seasonRank = null, kd = null;
+  if (game === 'delta') {
+    assessmentType = state.form.assessmentType;
+    if (!assessmentType) { toast('请选择考核类型', 'error'); return; }
+    // Gender check for entertainment
+    if (assessmentType === 'entertainment' && gender === 'male') {
+      toast('娱乐考核仅限女性考生', 'error'); return;
+    }
+    if (assessmentType === 'companion') {
+      assessmentMode = state.form.assessmentMode;
+      assessmentTier = state.form.assessmentTier;
+      if (!assessmentMode) { toast('请选择单考/双考', 'error'); return; }
+      if (!assessmentTier) { toast('请选择考核档位', 'error'); return; }
+      seasonRank = document.getElementById('seasonRankInput').value.trim();
+      kd = document.getElementById('kdInput').value;
+      if (!seasonRank) { toast('请输入赛季段位', 'error'); return; }
+      if (!kd) { toast('请输入KD', 'error'); return; }
+      if (parseFloat(kd) < 1.5) { toast('KD不得低于1.5，不符合陪玩/护航考核账号要求', 'error'); return; }
+      // Tier 1 (娱技) female-only check
+      if (assessmentTier === 1 && gender === 'male') {
+        toast('一档（娱技）仅可女生报考', 'error'); return;
+      }
+    }
+  }
+
+  const booking = {
+    examineeName: state.session.name,
+    examineeContact: state.session.contact,
+    game, gender, platform, rank, gameId, server, preferredTime, notes,
+    assessmentType, assessmentMode, assessmentTier, seasonRank, kd
+  };
+  try {
+    await createBookingData(booking);
+    toast('预约提交成功！等待考官接单', 'success');
+    state.currentTab = 'list';
+    await refreshAfterAction();
+  } catch (e) {
+    toast('提交失败：' + e.message, 'error');
+  }
+}
+
+function renderExamineeBookings(bookings) {
+  if (bookings.length === 0) {
+    return `<div class="empty-state"><div class="empty-icon">📭</div><h3>暂无预约记录</h3><p>点击"发起预约"创建您的第一条考核预约</p><button class="btn btn-primary" style="margin-top:16px" onclick="setTab('create')">📝 发起预约</button></div>`;
+  }
+  return `<div class="cards-grid">${bookings.map(renderBookingCard).join('')}</div>`;
+}
+
+// ========== Examiner View ==========
+function renderExaminer() {
+  const myGames = state.session.games || [];
+  const pendingBookings = state.bookings.filter(b => b.status === 'pending' && (myGames.length === 0 || myGames.includes(b.game)));
+  const myActive = state.bookings.filter(b => b.examinerContact === state.session.contact && ['accepted','assessing'].includes(b.status));
+  const myDone = state.bookings.filter(b => b.examinerContact === state.session.contact && b.status === 'completed');
+
+  return `
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon" style="background:var(--warning-bg);color:var(--warning)">📥</div><div class="stat-info"><div class="stat-value">${pendingBookings.length}</div><div class="stat-label">待接订单</div></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:var(--primary-bg);color:var(--primary)">🎯</div><div class="stat-info"><div class="stat-value">${myActive.length}</div><div class="stat-label">进行中</div></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:var(--success-bg);color:var(--success)">🏆</div><div class="stat-info"><div class="stat-value">${myDone.length}</div><div class="stat-label">已完成</div></div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab ${state.currentTab==='hall'?'active':''}" onclick="setTab('hall')">🏪 接单大厅 <span class="count">${pendingBookings.length}</span></button>
+      <button class="tab ${state.currentTab==='mine'?'active':''}" onclick="setTab('mine')">🎯 我的考核 <span class="count">${myActive.length}</span></button>
+      <button class="tab ${state.currentTab==='history'?'active':''}" onclick="setTab('history')">📜 历史记录 <span class="count">${myDone.length}</span></button>
+    </div>
+    ${state.currentTab === 'hall' ? renderHall(pendingBookings) : ''}
+    ${state.currentTab === 'mine' ? renderMyActive(myActive) : ''}
+    ${state.currentTab === 'history' ? renderHistory(myDone) : ''}
+  `;
+}
+
+function renderHall(bookings) {
+  let filtered = state.filterGame !== 'all' ? bookings.filter(b => b.game === state.filterGame) : bookings;
+  return `
+    <div class="filter-bar">
+      <div class="filter-group">
+        <button class="filter-btn ${state.filterGame==='all'?'active':''}" onclick="setFilter('all')">全部</button>
+        ${Object.entries(GAMES).map(([k, g]) => `<button class="filter-btn ${state.filterGame===k?'active':''}" onclick="setFilter('${k}')">${g.icon} ${g.name}</button>`).join('')}
+      </div>
+    </div>
+    ${filtered.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎯</div><h3>暂无可接订单</h3><p>目前没有待接单的考核预约，请稍后再来</p></div>` : `<div class="cards-grid">${filtered.map(b => renderBookingCard(b, true)).join('')}</div>`}
+  `;
+}
+
+function renderMyActive(bookings) {
+  if (bookings.length === 0) return `<div class="empty-state"><div class="empty-icon">🎮</div><h3>暂无进行中的考核</h3><p>前往接单大厅查看可接订单</p><button class="btn btn-primary" style="margin-top:16px" onclick="setTab('hall')">🏪 前往接单大厅</button></div>`;
+  return `<div class="cards-grid">${bookings.map(b => renderBookingCard(b, false, true)).join('')}</div>`;
+}
+
+function renderHistory(bookings) {
+  if (bookings.length === 0) return `<div class="empty-state"><div class="empty-icon">📜</div><h3>暂无历史记录</h3><p>完成的考核将显示在这里</p></div>`;
+  return `<div class="cards-grid">${bookings.map(renderBookingCard).join('')}</div>`;
+}
+
+// ========== Booking Card ==========
+function renderBookingCard(b, canAccept, canManage) {
+  const game = GAMES[b.game];
+  const status = STATUS[b.status];
+  const isExaminee = state.session.role === 'examinee';
+  const isMyExaminer = b.examinerContact === state.session.contact;
+
+  // Build tags
+  let tags = `<span class="game-tag ${game.color}">${game.icon} ${game.name}</span>`;
+  if (b.assessmentType) {
+    const cfg = DELTA_CRITERIA[b.assessmentType];
+    tags += `<span class="assess-tag ${b.assessmentType}">${cfg.icon} ${cfg.shortLabel}</span>`;
+    if (b.assessmentMode) tags += `<span class="assess-tag mode">${b.assessmentMode === 'single' ? '单考' : '双考'}</span>`;
+    if (b.assessmentTier) {
+      const tierNames = ['', '一档', '二档', '三档', '四档'];
+      tags += `<span class="assess-tag tier">${tierNames[b.assessmentTier]}</span>`;
+    }
+  }
+  if (b.gender) tags += `<span class="gender-tag">${b.gender === 'male' ? '👨 男' : '👩 女'}</span>`;
+  if (b.platform) tags += `<span class="platform-tag">${b.platform === 'pc' ? '🖥️ 端游' : '📱 手游'}</span>`;
+
+  let actions = '';
+  if (canAccept && b.status === 'pending') {
+    actions = `<button class="btn btn-success btn-sm" onclick="acceptBooking('${b.id}')">✓ 接单</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
+  }
+  if (canManage && isMyExaminer) {
+    if (b.status === 'accepted') actions = `<button class="btn btn-primary btn-sm" onclick="startAssessing('${b.id}')">开始考核</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
+    else if (b.status === 'assessing') actions = `<button class="btn btn-success btn-sm" onclick="showAssessForm('${b.id}')">完成考核</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
+  }
+  if (isExaminee && b.status === 'pending') {
+    actions = `<button class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')">取消预约</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
+  }
+  if (b.status === 'completed' && !actions) actions = `<button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">查看详情</button>`;
+  if (b.status === 'cancelled' && !actions) actions = `<button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
+
+  return `
+    <div class="booking-card">
+      <div class="card-top">
+        <div class="card-tags">${tags}</div>
+        <span class="status-badge ${status.class}">${status.label}</span>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><span class="label">考生</span><span class="value">${b.examineeName}</span></div>
+        <div class="info-row"><span class="label">段位</span><span class="value">${b.rank}</span></div>
+        <div class="info-row"><span class="label">游戏ID</span><span class="value">${b.gameId}</span></div>
+        <div class="info-row"><span class="label">大区</span><span class="value">${b.server}</span></div>
+        ${b.seasonRank ? `<div class="info-row"><span class="label">赛季段位</span><span class="value">${b.seasonRank}</span></div>` : ''}
+        ${b.kd ? `<div class="info-row"><span class="label">KD</span><span class="value">${b.kd}</span></div>` : ''}
+        <div class="info-row"><span class="label">期望时间</span><span class="value">${fmtFullTime(new Date(b.preferredTime).getTime())}</span></div>
+        ${b.examinerName ? `<div class="info-row"><span class="label">考官</span><span class="value">${b.examinerName}</span></div>` : ''}
+        ${b.score !== null ? `<div class="info-row"><span class="label">评分</span><span class="value">${renderScoreDisplay(b.score)}</span></div>` : ''}
+        ${b.notes ? `<div class="card-notes">💬 ${b.notes}</div>` : ''}
+      </div>
+      <div class="card-footer">
+        <span class="card-time">${timeAgo(b.createdAt)}</span>
+        <div class="card-actions">${actions}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderScoreDisplay(score) {
+  const full = '\u2605'.repeat(score);
+  const empty = '\u2605'.repeat(5 - score);
+  return `<span class="score-display"><span class="score-stars">${full}<span class="empty">${empty}</span></span><span class="score-value">${score}/5</span></span>`;
+}
+
+// ========== Actions ==========
+function setTab(tab) { state.currentTab = tab; render(); }
+function setFilter(game) { state.filterGame = game; render(); }
+
+function acceptBooking(id) {
+  const b = state.bookings.find(x => x.id === id);
+  if (!b) return;
+  if (b.status !== 'pending') { toast('该订单已被接取', 'warning'); return; }
+  showConfirm(`确认接取 ${b.examineeName} 的 ${GAMES[b.game].name} 考核订单？`, async () => {
+    try {
+      await actionBooking(id, 'accept', { examinerName: state.session.name, examinerContact: state.session.contact });
+      toast('接单成功！', 'success');
+      await refreshAfterAction();
+    } catch (e) {
+      toast('接单失败：' + e.message, 'error');
+    }
+  });
+}
+
+async function startAssessing(id) {
+  try {
+    await actionBooking(id, 'start');
+    toast('考核已开始，请完成考核后提交评分', 'info');
+    await refreshAfterAction();
+  } catch (e) {
+    toast('操作失败：' + e.message, 'error');
+  }
+}
+
+function showAssessForm(id) {
+  const b = state.bookings.find(x => x.id === id);
+  if (!b) return;
+  state.editingScore = 0;
+  const criteria = getCriteriaForBooking(b);
+  const criteriaHtml = criteria ? `
+    <div class="detail-section" style="background:var(--primary-bg);">
+      <h4 style="color:var(--primary-dark);">📋 考核标准参考</h4>
+      ${criteria.accountReq ? `<div style="font-size:.82rem;color:var(--primary-dark);margin-bottom:8px;">账号要求：${criteria.accountReq}</div>` : ''}
+      <div class="criteria-checklist">
+        ${criteria.checklist.map(item => `<div class="criteria-item"><span class="ci-icon">\u2713</span><span>${item}</span></div>`).join('')}
+      </div>
+      ${criteria.note ? `<div class="criteria-note">⚠️ ${criteria.note}</div>` : ''}
+    </div>
+    ${b.game === 'delta' && b.assessmentType ? renderPrecautionsHtml() : ''}
+  ` : '';
+
+  showModal(`
+    <div class="modal-header">
+      <h3>提交考核评价</h3>
+      <button class="modal-close" onclick="closeModal()">\u00d7</button>
+    </div>
+    <div class="modal-body">
+      ${criteriaHtml}
+      <div class="form-group">
+        <label class="form-label">考核评分 <span class="required">*</span></label>
+        <div class="star-rating" id="starRating">
+          ${[1,2,3,4,5].map(n => `<span class="star" data-score="${n}" onclick="setScore(${n})" onmouseover="hoverScore(${n})" onmouseout="resetHover()">\u2605</span>`).join('')}
+        </div>
+        <div class="form-hint" id="scoreHint">请选择评分</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">考核反馈 <span class="required">*</span></label>
+        <textarea class="form-textarea" id="feedbackInput" placeholder="对考生的操作、意识、配合、沟通等方面进行评价，并结合考核标准说明是否达标" style="min-height:120px" maxlength="1000"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-success" onclick="submitAssessment('${id}')">提交评价</button>
+    </div>
+  `);
+}
+
+function setScore(n) {
+  state.editingScore = n;
+  document.querySelectorAll('#starRating .star').forEach(el => { el.classList.toggle('active', parseInt(el.dataset.score) <= n); });
+  const hints = ['', '不合格 - 需大幅提升', '及格 - 基本达标，有提升空间', '良好 - 操作意识不错', '优秀 - 表现出色', '卓越 - 顶尖水平'];
+  document.getElementById('scoreHint').textContent = hints[n] || '请选择评分';
+}
+function hoverScore(n) { document.querySelectorAll('#starRating .star').forEach(el => { el.classList.toggle('hover', parseInt(el.dataset.score) <= n); }); }
+function resetHover() { document.querySelectorAll('#starRating .star').forEach(el => { el.classList.toggle('active', parseInt(el.dataset.score) <= state.editingScore); el.classList.remove('hover'); }); }
+
+async function submitAssessment(id) {
+  if (state.editingScore === 0) { toast('请选择评分', 'error'); return; }
+  const feedback = document.getElementById('feedbackInput').value.trim();
+  if (!feedback) { toast('请填写考核反馈', 'error'); return; }
+  try {
+    await actionBooking(id, 'complete', { score: state.editingScore, feedback });
+    closeModal();
+    toast('考核评价已提交！', 'success');
+    await refreshAfterAction();
+  } catch (e) {
+    toast('提交失败：' + e.message, 'error');
+  }
+}
+
+function cancelBooking(id) {
+  const b = state.bookings.find(x => x.id === id);
+  if (!b) return;
+  showConfirm(`确认取消预约 ${b.id}？取消后无法恢复。`, async () => {
+    try {
+      await actionBooking(id, 'cancel');
+      toast('预约已取消', 'info');
+      await refreshAfterAction();
+    } catch (e) {
+      toast('取消失败：' + e.message, 'error');
+    }
+  });
+}
+
+// ========== Detail View ==========
+function viewDetail(id) {
+  const b = state.bookings.find(x => x.id === id);
+  if (!b) return;
+  const game = GAMES[b.game];
+  const status = STATUS[b.status];
+  const criteria = getCriteriaForBooking(b);
+
+  // Build tags
+  let tagsHtml = `<span class="game-tag ${game.color}">${game.icon} ${game.name}</span>`;
+  if (b.assessmentType) {
+    const cfg = DELTA_CRITERIA[b.assessmentType];
+    tagsHtml += `<span class="assess-tag ${b.assessmentType}">${cfg.icon} ${cfg.shortLabel}</span>`;
+    if (b.assessmentMode) tagsHtml += `<span class="assess-tag mode">${b.assessmentMode === 'single' ? '单考' : '双考'}</span>`;
+    if (b.assessmentTier) {
+      const tierNames = ['', '一档', '二档', '三档', '四档'];
+      tagsHtml += `<span class="assess-tag tier">${tierNames[b.assessmentTier]}</span>`;
+    }
+  }
+
+  let criteriaHtml = '';
+  if (criteria) {
+    criteriaHtml = `
+      <div class="detail-section" style="background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);">
+        <h4 style="color:var(--primary-dark);">📋 考核标准</h4>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:1.1rem;">${criteria.icon}</span>
+          <span style="font-weight:700;font-size:.95rem;">${criteria.label}</span>
+          ${criteria.tierName ? `<span style="font-size:.82rem;font-weight:600;color:var(--primary-dark);background:rgba(255,255,255,.7);padding:2px 10px;border-radius:12px;">${criteria.modeLabel ? criteria.modeLabel + ' \u00b7 ' : ''}${criteria.tierName}</span>` : ''}
+        </div>
+        ${criteria.accountReq ? `<div style="font-size:.82rem;color:var(--primary-dark);background:rgba(255,255,255,.5);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:10px;">📋 ${criteria.accountReq}</div>` : ''}
+        <div class="criteria-checklist">
+          ${criteria.checklist.map(item => `<div class="criteria-item"><span class="ci-icon">\u2713</span><span>${item}</span></div>`).join('')}
+        </div>
+        ${criteria.note ? `<div class="criteria-note">⚠️ ${criteria.note}</div>` : ''}
+      </div>
+    `;
+  }
+
+  showModal(`
+    <div class="modal-header">
+      <h3>预约详情</h3>
+      <button class="modal-close" onclick="closeModal()">\u00d7</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:6px;margin-bottom:20px;align-items:center;flex-wrap:wrap;">
+        ${tagsHtml}
+        <span class="status-badge ${status.class}" style="margin-left:auto;">${status.label}</span>
+      </div>
+      <div class="detail-section">
+        <h4>考生信息</h4>
+        <div class="detail-row"><span class="label">昵称</span><span class="value">${b.examineeName}</span></div>
+        <div class="detail-row"><span class="label">性别</span><span class="value">${b.gender === 'male' ? '男' : b.gender === 'female' ? '女' : '--'}</span></div>
+        <div class="detail-row"><span class="label">平台</span><span class="value">${b.platform === 'pc' ? '端游' : b.platform === 'mobile' ? '手游' : '--'}</span></div>
+        <div class="detail-row"><span class="label">联系方式</span><span class="value">${b.examineeContact}</span></div>
+        <div class="detail-row"><span class="label">游戏ID</span><span class="value">${b.gameId}</span></div>
+        <div class="detail-row"><span class="label">大区/服务器</span><span class="value">${b.server}</span></div>
+        <div class="detail-row"><span class="label">当前段位</span><span class="value">${b.rank}</span></div>
+        ${b.seasonRank ? `<div class="detail-row"><span class="label">赛季段位</span><span class="value">${b.seasonRank}</span></div>` : ''}
+        ${b.kd ? `<div class="detail-row"><span class="label">KD</span><span class="value">${b.kd}</span></div>` : ''}
+      </div>
+      ${criteriaHtml}
+      ${b.game === 'delta' && b.assessmentType ? renderPrecautionsHtml() : ''}
+      <div class="detail-section">
+        <h4>预约信息</h4>
+        <div class="detail-row"><span class="label">期望时间</span><span class="value">${fmtFullTime(new Date(b.preferredTime).getTime())}</span></div>
+        <div class="detail-row"><span class="label">提交时间</span><span class="value">${fmtFullTime(b.createdAt)}</span></div>
+        ${b.acceptedAt ? `<div class="detail-row"><span class="label">接单时间</span><span class="value">${fmtFullTime(b.acceptedAt)}</span></div>` : ''}
+        ${b.assessingAt ? `<div class="detail-row"><span class="label">考核开始</span><span class="value">${fmtFullTime(b.assessingAt)}</span></div>` : ''}
+        ${b.completedAt ? `<div class="detail-row"><span class="label">完成时间</span><span class="value">${fmtFullTime(b.completedAt)}</span></div>` : ''}
+        ${b.examinerName ? `<div class="detail-row"><span class="label">考官</span><span class="value">${b.examinerName}（${b.examinerContact}）</span></div>` : ''}
+      </div>
+      ${b.notes ? `<div class="detail-section"><h4>备注</h4><div class="feedback-box">${b.notes}</div></div>` : ''}
+      ${b.score !== null ? `
+        <div class="detail-section">
+          <h4>考核结果</h4>
+          <div class="detail-row"><span class="label">评分</span><span class="value">${renderScoreDisplay(b.score)}</span></div>
+          <div style="margin-top:12px;"><div class="detail-row" style="margin-bottom:6px;"><span class="label">反馈</span></div><div class="feedback-box">${b.feedback}</div></div>
+        </div>
+      ` : ''}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">关闭</button>
+    </div>
+  `);
+}
+
+// ========== Criteria Reference Modal ==========
+function showCriteriaRef() {
+  showModal(`
+    <div class="modal-header">
+      <h3>📕 考核标准参考</h3>
+      <button class="modal-close" onclick="closeModal()">\u00d7</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Entertainment -->
+      <div class="criteria-ref-section">
+        <h3>🎮 娱乐考核</h3>
+        <div class="criteria-ref-card entertainment">
+          <h4>🎮 娱乐考核</h4>
+          <p class="ref-desc">仅限女，要求熟悉地图和游戏机制，和考官打一局就行（地图三张里抽取一张）</p>
+          <div class="criteria-checklist">
+            <div class="criteria-item"><span class="ci-icon">\u2713</span><span>仅限女性考生</span></div>
+            <div class="criteria-item"><span class="ci-icon">\u2713</span><span>要求熟悉地图和游戏机制</span></div>
+            <div class="criteria-item"><span class="ci-icon">\u2713</span><span>和考官打一局（地图三张里抽取一张）</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Companion/Escort -->
+      <div class="criteria-ref-section">
+        <h3>🎯 陪玩/护航考核</h3>
+        <div class="criteria-ref-card companion">
+          <h4>🎯 陪玩/护航考核</h4>
+          <p class="ref-desc">过此要求陪玩和护航都可以接</p>
+          <div class="ref-account">📋 账号要求：考核账号赛季初需黑鹰4以上，赛季末需巅峰，KD不得低于1.5</div>
+
+          <div class="mode-label">单考要求</div>
+          <div class="tier-grid">
+            <div class="tier-card">
+              <div class="tier-name">🥉 一档（娱技）</div>
+              <div class="tier-item">绝密3局</div>
+              <div class="tier-item">至少撤离1局</div>
+              <div class="tier-item">13杀</div>
+              <div class="tier-note">⚠️ 仅可女生</div>
+            </div>
+            <div class="tier-card">
+              <div class="tier-name">🥈 二档（技术）</div>
+              <div class="tier-item">绝密3局</div>
+              <div class="tier-item">至少撤离1局</div>
+              <div class="tier-item">18杀</div>
+              <div class="tier-item">累计带出价值400万</div>
+            </div>
+            <div class="tier-card">
+              <div class="tier-name">🥇 三档（大神）</div>
+              <div class="tier-item">绝密3局</div>
+              <div class="tier-item">至少撤离2局</div>
+              <div class="tier-item">23杀</div>
+              <div class="tier-item">累计带出价值800万</div>
+            </div>
+            <div class="tier-card">
+              <div class="tier-name">💎 四档（明星）</div>
+              <div class="tier-item">绝密3局</div>
+              <div class="tier-item">至少撤离2局</div>
+              <div class="tier-item">三局28杀</div>
+              <div class="tier-item">累计带出价值1000w</div>
+              <div class="tier-note">⚠️ 仅接受在职大神升档考核（平台主播和FPS职业背景可直考）</div>
+            </div>
+          </div>
+
+          <div class="mode-label">双考要求</div>
+          <div class="tier-grid">
+            <div class="tier-card">
+              <div class="tier-name">🥉 一档（娱技）</div>
+              <div class="tier-item">带考官3局（绝密）</div>
+              <div class="tier-item">至少撤离1局</div>
+              <div class="tier-item">累计18杀</div>
+              <div class="tier-item">至少带考官累计400万撤离</div>
+              <div class="tier-note">⚠️ 仅可女生</div>
+            </div>
+            <div class="tier-card">
+              <div class="tier-name">🥈 二档（技术）</div>
+              <div class="tier-item">带考官3局（绝密）</div>
+              <div class="tier-item">至少撤离2局</div>
+              <div class="tier-item">累计23杀</div>
+              <div class="tier-item">至少带考官累计1000万撤离</div>
+            </div>
+            <div class="tier-card">
+              <div class="tier-name">🥇 三档（大神）</div>
+              <div class="tier-item">带考官3局（绝密）</div>
+              <div class="tier-item">至少撤离2局</div>
+              <div class="tier-item">累计28杀</div>
+              <div class="tier-item">至少带考官累计1600万撤离一把</div>
+            </div>
+            <div class="tier-card">
+              <div class="tier-name">💎 四档（明星）</div>
+              <div class="tier-item">带考官3局（绝密）</div>
+              <div class="tier-item">至少撤离2局</div>
+              <div class="tier-item">累计33杀</div>
+              <div class="tier-item">累计2000w物资</div>
+              <div class="tier-note">⚠️ 仅接受在职大神升档考核（平台主播和FPS职业背景可直考）</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Precautions -->
+      <div class="criteria-ref-section">
+        <h3>⚠️ 注意事项</h3>
+        <div class="precautions-box">
+          ${DELTA_NOTES.map((n, i) => `
+            <div class="pa-item">
+              <span class="pa-num">${i + 1}</span>
+              <span class="pa-icon">${n.icon}</span>
+              <span>${n.text}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal()">我知道了</button>
+    </div>
+  `, true);
+}
+
+// ========== Modal ==========
+function showModal(html, large) {
+  let overlay = document.getElementById('modalOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modalOverlay';
+    overlay.className = 'modal-overlay';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  }
+  overlay.innerHTML = `<div class="modal ${large ? 'large' : ''}">${html}</div>`;
+  overlay.classList.add('show');
+}
+function closeModal() {
+  const overlay = document.getElementById('modalOverlay');
+  if (overlay) { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 200); }
+}
+function showConfirm(msg, onConfirm) {
+  showModal(`
+    <div class="modal-header"><h3>确认操作</h3></div>
+    <div class="modal-body"><p style="font-size:.95rem;color:var(--text);">${msg}</p></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmAction()">确认</button>
+    </div>
+  `);
+  window._confirmAction = onConfirm;
+}
+function confirmAction() { closeModal(); if (window._confirmAction) { window._confirmAction(); window._confirmAction = null; } }
+
+// ========== Init ==========
+async function init() {
+  const apiMode = await detectApiMode();
+  if (apiMode) {
+    console.log('API mode: multi-device sync enabled');
+  } else {
+    console.log('Local mode: single-device (localStorage)');
+    if (loadBookingsLocal().length === 0) {
+      const now = Date.now();
+      const demo = [
+        { id: 'DEMO001', examineeName: 'ShadowBlade', examineeContact: 'demo_qq_001', game: 'valorant', gender: 'male', platform: 'pc', rank: '金', gameId: 'ShadowBlade#CN1', server: '腾讯服', preferredTime: new Date(now + 86400000).toISOString().slice(0,16), notes: '擅长决斗者位置，主练Jett和Reyna', assessmentType: null, assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null, status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 3600000 },
+        { id: 'DEMO002', examineeName: 'ClearLove77', examineeContact: 'demo_qq_002', game: 'lol', gender: 'male', platform: 'pc', rank: '钻石', gameId: 'ClearLove77', server: '电信一区 艾欧尼亚', preferredTime: new Date(now + 172800000).toISOString().slice(0,16), notes: '打野位，擅长盲僧、皇子', assessmentType: null, assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null, status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 7200000 },
+        { id: 'DEMO003', examineeName: 'DeltaHunter', examineeContact: 'demo_qq_003', game: 'delta', gender: 'male', platform: 'pc', rank: '铂金', gameId: 'DeltaHunter_PC', server: '微信区', preferredTime: new Date(now + 86400000 * 3).toISOString().slice(0,16), notes: '突击位，擅长M4A1', assessmentType: 'companion', assessmentMode: 'single', assessmentTier: 2, seasonRank: '黑鹰5', kd: '2.1', status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 1800000 },
+        { id: 'DEMO004', examineeName: 'GoddessGamer', examineeContact: 'demo_qq_004', game: 'delta', gender: 'female', platform: 'mobile', rank: '黄金', gameId: 'GoddessGamer_M', server: 'QQ区', preferredTime: new Date(now + 86400000 * 2).toISOString().slice(0,16), notes: '熟悉地图机制，想考娱乐考核', assessmentType: 'entertainment', assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null, status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 900000 },
+        { id: 'DEMO005', examineeName: 'ProEscorts', examineeContact: 'demo_qq_005', game: 'delta', gender: 'male', platform: 'pc', rank: '大师', gameId: 'ProEscorts_PC', server: '微信区', preferredTime: new Date(now + 86400000 * 2).toISOString().slice(0,16), notes: '老手申请双考技术档', assessmentType: 'companion', assessmentMode: 'dual', assessmentTier: 2, seasonRank: '巅峰', kd: '2.1', status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 600000 }
+      ];
+      saveBookingsLocal(demo);
+    }
+  }
+  await fetchBookings();
+  setInterval(() => { if (state.session) fetchBookings(); }, 10000);
+}
+init();
+</script>
+</body>
+</html>
