@@ -120,6 +120,42 @@ a { color: var(--primary); text-decoration: none; }
 
 /* ========== Tabs ========== */
 .tabs { display: flex; gap: 4px; background: var(--surface); padding: 6px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; width: fit-content; flex-wrap: wrap; }
+.subtabs { display: flex; gap: 4px; background: var(--surface-alt); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 20px; width: fit-content; }
+.subtab { background: transparent; border: none; padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-size: .88rem; color: var(--text-muted); transition: all .2s; }
+.subtab:hover { background: var(--surface); color: var(--text); }
+.subtab.active { background: var(--surface); color: var(--primary); font-weight: 600; box-shadow: var(--shadow); }
+.material-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; background: var(--surface-alt); border-radius: var(--radius-sm); margin-bottom: 8px; border: 1px solid var(--border); }
+.material-info { flex: 1; }
+.material-name { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.material-desc { font-size: .78rem; color: var(--text-muted); }
+.material-upload { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.material-preview { display: flex; align-items: center; }
+.materials-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.material-item { background: var(--surface-alt); border-radius: var(--radius-sm); padding: 8px; text-align: center; border: 1px solid var(--border); }
+.material-item-name { font-size: .78rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.material-img { max-width: 100%; max-height: 100px; border-radius: 6px; cursor: pointer; transition: transform .2s; }
+.material-img:hover { transform: scale(1.05); }
+.material-empty { padding: 24px 0; color: var(--text-muted); font-size: .82rem; }
+.dashboard { padding: 4px; }
+.dash-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.dash-stat { background: var(--surface); padding: 16px; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; border: 1px solid var(--border); }
+.dash-num { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+.dash-label { font-size: .82rem; color: var(--text-muted); margin-top: 4px; }
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.dash-card { background: var(--surface); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+.dash-card h3 { font-size: .95rem; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.bar-chart { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 8px; font-size: .82rem; }
+.bar-label { width: 56px; color: var(--text-muted); text-align: right; }
+.bar-track { flex: 1; height: 12px; background: var(--surface-alt); border-radius: 6px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; transition: width .3s; }
+.bar-value { width: 32px; color: var(--text); font-weight: 600; }
+.empty-tip { color: var(--text-muted); font-size: .85rem; padding: 16px 0; text-align: center; }
+.ratio-display { padding: 16px 0; }
+.ratio-bar { height: 32px; border-radius: 8px; overflow: hidden; display: flex; background: var(--surface-alt); margin-bottom: 16px; }
+.ratio-male { background: var(--info); transition: width .3s; }
+.ratio-female { background: var(--danger); transition: width .3s; }
+.ratio-legend { display: flex; justify-content: space-around; font-size: .88rem; color: var(--text); }
 .tab { padding: 10px 24px; border-radius: var(--radius-sm); font-size: .9rem; font-weight: 600; color: var(--text-muted); transition: all .2s; display: flex; align-items: center; gap: 6px; }
 .tab:hover { color: var(--text); }
 .tab.active { background: var(--primary); color: #fff; }
@@ -146,6 +182,8 @@ a { color: var(--primary); text-decoration: none; }
 .booking-card:hover { box-shadow: var(--shadow-md); border-color: var(--border); }
 .booking-card.transferred { border: 2px solid var(--warning); background: linear-gradient(135deg, var(--surface) 0%, rgba(245, 158, 11, 0.04) 100%); }
 .booking-card.transferred::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--warning); }
+.booking-card.transfer-card { border: 2px solid var(--success); background: linear-gradient(135deg, var(--surface) 0%, rgba(16, 185, 129, 0.04) 100%); }
+.booking-card.transfer-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--success); }
 .booking-card .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
 .card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -569,7 +607,7 @@ async function createBookingData(booking) {
     if (!res.ok) throw new Error('Create failed');
     return res.json();
   } else {
-    const newBooking = { ...booking, id: uid(), status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, passed: null, transferredCount: 0, createdAt: Date.now() };
+    const newBooking = { ...booking, id: uid(), status: 'pending', type: booking.type || 'normal', materials: booking.materials || null, examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, passed: null, transferredCount: 0, createdAt: Date.now() };
     state.bookings.unshift(newBooking);
     saveBookingsLocal(state.bookings);
     return newBooking;
@@ -619,18 +657,18 @@ async function findUser(username) {
   }
 }
 
-async function registerUser(username, password, role, qrCode) {
+async function registerUser(username, password, role, qrCode, inviteCode) {
   if (USE_API) {
     const res = await fetch(`${UAPI}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, role, qrCode })
+      body: JSON.stringify({ username, password, role, qrCode, inviteCode })
     });
     if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || '注册失败'); }
     return res.json();
   } else {
     const users = loadUsersLocal();
-    const user = { username, passwordHash: hashPwd(password), role, qrCode: qrCode || null, createdAt: Date.now() };
+    const user = { username, passwordHash: hashPwd(password), role, qrCode: qrCode || null, inviteCode: inviteCode || null, createdAt: Date.now() };
     users.push(user);
     saveUsersLocal(users);
     return user;
@@ -1057,23 +1095,29 @@ function onQrFileSelected(input) {
 async function submitLogin() {
   const username = document.getElementById('loginUsername').value.trim();
   if (!username) { toast('请输入用户名', 'error'); return; }
+  let inviteCode = null;
   if (loginRole === 'examiner') {
-    const inviteCode = document.getElementById('loginInviteCode')?.value.trim();
+    inviteCode = document.getElementById('loginInviteCode')?.value.trim();
     if (!inviteCode) { toast('请输入邀请码', 'error'); return; }
     if (!EXAMINER_INVITE_CODES.includes(inviteCode)) { toast('邀请码无效', 'error'); return; }
   }
   const password = document.getElementById('loginPassword').value;
   if (!password) { toast('请输入密码', 'error'); return; }
   try {
+    let userInfo;
     if (loginIsNew) {
       const password2 = document.getElementById('loginPassword2')?.value;
       if (password !== password2) { toast('两次密码不一致', 'error'); return; }
       if (loginRole === 'examiner' && !loginQrCode) { toast('请上传微信二维码', 'error'); return; }
-      await registerUser(username, password, loginRole, loginRole === 'examiner' ? loginQrCode : null);
+      userInfo = await registerUser(username, password, loginRole, loginRole === 'examiner' ? loginQrCode : null, loginRole === 'examiner' ? inviteCode : null);
     } else {
-      await loginUser(username, password);
+      userInfo = await loginUser(username, password);
+      // Verify invite code matches existing examiner's invite code
+      if (loginRole === 'examiner' && userInfo.inviteCode !== inviteCode) {
+        toast('邀请码与账号不匹配', 'error'); return;
+      }
     }
-    state.session = { role: loginRole, username, loginAt: Date.now() };
+    state.session = { role: loginRole, username, inviteCode: userInfo.inviteCode || null, loginAt: Date.now() };
     saveSession(state.session);
     state.currentTab = loginRole === 'examinee' ? 'create' : 'hall';
     closeModal();
@@ -1089,6 +1133,8 @@ function switchRole() {
   showConfirm('确定要切换身份吗？当前会话将结束。', () => {
     state.session = null;
     state.notifiedBookings = null;
+    state.createSubTab = null;
+    state.transferMaterials = null;
     saveSession(null);
     render();
   });
@@ -1198,6 +1244,8 @@ function renderExaminee() {
   const active = my.filter(b => ['accepted','assessing'].includes(b.status)).length;
   const done = my.filter(b => b.status === 'completed').length;
 
+  const createSubTab = state.createSubTab || 'normal';
+
   return `
     <div class="stats-row">
       <div class="stat-card"><div class="stat-icon" style="background:var(--warning-bg);color:var(--warning)">\u23f3</div><div class="stat-info"><div class="stat-value">${pending}</div><div class="stat-label">待接单</div></div></div>
@@ -1208,9 +1256,17 @@ function renderExaminee() {
       <button class="tab ${state.currentTab==='create'?'active':''}" onclick="setTab('create')">📝 发起预约</button>
       <button class="tab ${state.currentTab==='list'?'active':''}" onclick="setTab('list')">📋 我的预约 <span class="count">${my.length}</span></button>
     </div>
-    ${state.currentTab === 'create' ? renderBookingForm() : renderExamineeBookings(my)}
+    ${state.currentTab === 'create' ? `
+      <div class="subtabs">
+        <button class="subtab ${createSubTab==='normal'?'active':''}" onclick="setCreateSubTab('normal')">🎯 正常考核</button>
+        <button class="subtab ${createSubTab==='transfer'?'active':''}" onclick="setCreateSubTab('transfer')">📦 平移的打手</button>
+      </div>
+      ${createSubTab === 'normal' ? renderBookingForm() : renderTransferForm()}
+    ` : renderExamineeBookings(my)}
   `;
 }
+
+function setCreateSubTab(t) { state.createSubTab = t; render(); }
 
 function renderBookingForm() {
   // Reset form state - game auto-set to delta
@@ -1529,26 +1585,257 @@ function renderExamineeBookings(bookings) {
   return `<div class="cards-grid">${bookings.map(renderBookingCard).join('')}</div>`;
 }
 
-// ========== Examiner View ==========
+// ========== Transfer (平移) Form ==========
+const TRANSFER_MATERIALS = [
+  { key: 'revenue', name: '中大店的流水', desc: '原平台/店铺的月度或近期接单流水截图，证明接单量和收入水平' },
+  { key: 'assessment', name: '考核记录', desc: '原平台通过的考核/评级记录，证明已具备大神资质' },
+  { key: 'tag', name: '别的店的tag', desc: '原平台/店铺的标签/称号（如星级tag、品类tag等），证明身份定位' },
+  { key: 'price', name: '他们的单价', desc: '原平台的接单单价，用于对标不确定价体系' },
+  { key: 'banCheck', name: '查挂记录', desc: '原平台的反作弊/查挂验证记录，证明无违规行为、账号干净' }
+];
+
+function renderTransferForm() {
+  state.transferMaterials = state.transferMaterials || {};
+  state.transferForm = state.transferForm || { name: '', wechat: '' };
+
+  return `
+    <div class="form-container">
+      <h2 class="form-title">📦 平移的打手登记</h2>
+      <p class="form-desc">从其他俱乐部或店铺平移过来的打手，请填写基础信息并上传5项证明资料。提交后只有最高权限考官（邀请码 10424）可见。</p>
+      <form id="transferForm" onsubmit="submitTransfer(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">姓名/昵称 <span class="required">*</span></label>
+            <input type="text" class="form-input" id="transferName" placeholder="请输入您的姓名或昵称" required maxlength="20" value="${state.transferForm.name || ''}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">联系方式 <span class="required">*</span></label>
+            <input type="text" class="form-input" id="transferWechat" placeholder="请输入您的微信号" required maxlength="30" value="${state.transferForm.wechat || ''}">
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+          <h3 style="font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:12px;">📋 5项证明资料（请上传图片）</h3>
+          ${TRANSFER_MATERIALS.map((m, i) => `
+            <div class="material-row">
+              <div class="material-info">
+                <div class="material-name">${i + 1}. ${m.name} <span class="required">*</span></div>
+                <div class="material-desc">${m.desc}</div>
+              </div>
+              <div class="material-upload">
+                <input type="file" id="materialFile_${m.key}" accept="image/*" onchange="onMaterialSelected('${m.key}', this)" style="display:none;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('materialFile_${m.key}').click()">选择图片</button>
+                <div id="materialPreview_${m.key}" class="material-preview"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="display:flex;gap:12px;">
+          <button type="submit" class="btn btn-primary btn-lg" style="flex:1">提交平移登记</button>
+          <button type="button" class="btn btn-outline btn-lg" onclick="setTab('list')">查看我的预约</button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function onMaterialSelected(key, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('图片不能超过5MB', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    state.transferMaterials = state.transferMaterials || {};
+    state.transferMaterials[key] = e.target.result;
+    document.getElementById('materialPreview_' + key).innerHTML = `<img src="${e.target.result}" style="max-width:80px;max-height:80px;border-radius:6px;border:1px solid var(--border);margin-top:6px;" />`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitTransfer(e) {
+  e.preventDefault();
+  const name = document.getElementById('transferName').value.trim();
+  const wechat = document.getElementById('transferWechat').value.trim();
+  if (!name) { toast('请输入姓名/昵称', 'error'); return; }
+  if (!wechat) { toast('请输入联系方式', 'error'); return; }
+  const missing = TRANSFER_MATERIALS.filter(m => !state.transferMaterials || !state.transferMaterials[m.key]);
+  if (missing.length > 0) {
+    toast(`请上传所有5项资料，缺少：${missing.map(m => m.name).join('、')}`, 'error'); return;
+  }
+  const booking = {
+    examineeName: name,
+    examineeContact: state.session.username,
+    game: 'delta',
+    wechat,
+    type: 'transfer',
+    materials: state.transferMaterials,
+    preferredTime: new Date().toISOString().slice(0, 16),
+    notes: '平移的打手',
+    assessmentType: null,
+    assessmentMode: null,
+    assessmentTier: null,
+    seasonRank: null,
+    kd: null
+  };
+  try {
+    await createBookingData(booking);
+    toast('平移登记提交成功！等待最高权限考官审核', 'success');
+    state.transferMaterials = {};
+    state.transferForm = {};
+    state.currentTab = 'list';
+    await refreshAfterAction();
+  } catch (err) {
+    toast('提交失败：' + err.message, 'error');
+  }
+}
 function renderExaminer() {
-  const pendingBookings = state.bookings.filter(b => b.status === 'pending').sort((a, b) => new Date(a.preferredTime).getTime() - new Date(b.preferredTime).getTime());
+  const isSuper = state.session.inviteCode === '10424';
+  let pendingBookings = state.bookings.filter(b => b.status === 'pending');
+  if (!isSuper) pendingBookings = pendingBookings.filter(b => (b.type || 'normal') === 'normal');
+  pendingBookings.sort((a, b) => new Date(a.preferredTime).getTime() - new Date(b.preferredTime).getTime());
+
   const myActive = state.bookings.filter(b => b.examinerContact === state.session.username && ['accepted','assessing'].includes(b.status));
   const myDone = state.bookings.filter(b => b.examinerContact === state.session.username && b.status === 'completed');
+
+  const transferCount = isSuper ? state.bookings.filter(b => (b.type || 'normal') === 'transfer' && b.status === 'pending').length : 0;
 
   return `
     <div class="stats-row">
       <div class="stat-card"><div class="stat-icon" style="background:var(--warning-bg);color:var(--warning)">📥</div><div class="stat-info"><div class="stat-value">${pendingBookings.length}</div><div class="stat-label">待接订单</div></div></div>
+      ${isSuper ? `<div class="stat-card"><div class="stat-icon" style="background:var(--info-bg);color:var(--info)">📦</div><div class="stat-info"><div class="stat-value">${transferCount}</div><div class="stat-label">平移单</div></div></div>` : ''}
       <div class="stat-card"><div class="stat-icon" style="background:var(--primary-bg);color:var(--primary)">🎯</div><div class="stat-info"><div class="stat-value">${myActive.length}</div><div class="stat-label">进行中</div></div></div>
       <div class="stat-card"><div class="stat-icon" style="background:var(--success-bg);color:var(--success)">🏆</div><div class="stat-info"><div class="stat-value">${myDone.length}</div><div class="stat-label">已完成</div></div></div>
     </div>
     <div class="tabs">
       <button class="tab ${state.currentTab==='hall'?'active':''}" onclick="setTab('hall')">🏪 接单大厅 <span class="count">${pendingBookings.length}</span></button>
+      ${isSuper ? `<button class="tab ${state.currentTab==='transfer'?'active':''}" onclick="setTab('transfer')">📦 平移单 <span class="count">${transferCount}</span></button>` : ''}
       <button class="tab ${state.currentTab==='mine'?'active':''}" onclick="setTab('mine')">🎯 我的考核 <span class="count">${myActive.length}</span></button>
       <button class="tab ${state.currentTab==='history'?'active':''}" onclick="setTab('history')">📜 历史记录 <span class="count">${myDone.length}</span></button>
+      ${isSuper ? `<button class="tab ${state.currentTab==='dashboard'?'active':''}" onclick="setTab('dashboard')">📊 数据看板</button>` : ''}
     </div>
     ${state.currentTab === 'hall' ? renderHall(pendingBookings) : ''}
+    ${state.currentTab === 'transfer' && isSuper ? renderTransferHall() : ''}
     ${state.currentTab === 'mine' ? renderMyActive(myActive) : ''}
     ${state.currentTab === 'history' ? renderHistory(myDone) : ''}
+    ${state.currentTab === 'dashboard' && isSuper ? renderDashboard() : ''}
+  `;
+}
+
+function renderTransferHall() {
+  const transfers = state.bookings.filter(b => (b.type || 'normal') === 'transfer' && b.status === 'pending').sort((a, b) => new Date(a.preferredTime).getTime() - new Date(b.preferredTime).getTime());
+  if (transfers.length === 0) return `<div class="empty-state"><div class="empty-icon">📦</div><h3>暂无平移单</h3><p>考生提交平移登记后会显示在这里</p></div>`;
+  return `<div class="cards-grid">${transfers.map(b => renderBookingCard(b, true)).join('')}</div>`;
+}
+
+// ========== Dashboard (10424 only) ==========
+function renderDashboard() {
+  const all = state.bookings;
+  const normal = all.filter(b => (b.type || 'normal') === 'normal');
+  const transfers = all.filter(b => (b.type || 'normal') === 'transfer');
+  const completed = all.filter(b => b.status === 'completed');
+  const passed = completed.filter(b => b.passed === true).length;
+  const failed = completed.filter(b => b.passed === false).length;
+
+  // Time period distribution (by preferredTime day)
+  const byDay = {};
+  normal.forEach(b => {
+    const d = b.preferredTime ? b.preferredTime.slice(0, 10) : '未定';
+    byDay[d] = (byDay[d] || 0) + 1;
+  });
+  const dayEntries = Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0]));
+  const maxDay = Math.max(1, ...dayEntries.map(e => e[1]));
+
+  // Assessment tier distribution (companion)
+  const byTier = { 1: 0, 2: 0, 3: 0, 4: 0, 0: 0 };
+  normal.forEach(b => { byTier[b.assessmentTier || 0] = (byTier[b.assessmentTier || 0] || 0) + 1; });
+
+  // Gender ratio
+  const male = normal.filter(b => b.gender === 'male').length;
+  const female = normal.filter(b => b.gender === 'female').length;
+
+  // Examiner load
+  const examinerCount = {};
+  completed.forEach(b => {
+    if (b.examinerName) examinerCount[b.examinerName] = (examinerCount[b.examinerName] || 0) + 1;
+  });
+  const examinerEntries = Object.entries(examinerCount).sort((a, b) => b[1] - a[1]);
+
+  return `
+    <div class="dashboard">
+      <h2 style="margin-bottom:20px;">📊 数据看板</h2>
+
+      <!-- Top stats -->
+      <div class="dash-stats">
+        <div class="dash-stat"><div class="dash-num">${all.length}</div><div class="dash-label">总预约数</div></div>
+        <div class="dash-stat"><div class="dash-num" style="color:var(--info)">${normal.length}</div><div class="dash-label">正常考核</div></div>
+        <div class="dash-stat"><div class="dash-num" style="color:var(--success)">${transfers.length}</div><div class="dash-label">平移登记</div></div>
+        <div class="dash-stat"><div class="dash-num" style="color:var(--success)">${passed}</div><div class="dash-label">已通过</div></div>
+        <div class="dash-stat"><div class="dash-num" style="color:var(--danger)">${failed}</div><div class="dash-label">未通过</div></div>
+        <div class="dash-stat"><div class="dash-num">${completed.length > 0 ? Math.round(passed / completed.length * 100) : 0}%</div><div class="dash-label">通过率</div></div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Time distribution -->
+        <div class="dash-card">
+          <h3>📅 时间段分布</h3>
+          ${dayEntries.length === 0 ? '<div class="empty-tip">暂无数据</div>' : `
+            <div class="bar-chart">
+              ${dayEntries.map(([d, c]) => `
+                <div class="bar-row">
+                  <div class="bar-label">${d.slice(5)}</div>
+                  <div class="bar-track"><div class="bar-fill" style="width:${c / maxDay * 100}%;background:var(--info)"></div></div>
+                  <div class="bar-value">${c}</div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+
+        <!-- Assessment tier -->
+        <div class="dash-card">
+          <h3>🎯 考核档位分布</h3>
+          <div class="bar-chart">
+            <div class="bar-row"><div class="bar-label">一档</div><div class="bar-track"><div class="bar-fill" style="width:${byTier[1] / Math.max(1, normal.length) * 100}%;background:var(--primary)"></div></div><div class="bar-value">${byTier[1]}</div></div>
+            <div class="bar-row"><div class="bar-label">二档</div><div class="bar-track"><div class="bar-fill" style="width:${byTier[2] / Math.max(1, normal.length) * 100}%;background:var(--info)"></div></div><div class="bar-value">${byTier[2]}</div></div>
+            <div class="bar-row"><div class="bar-label">三档</div><div class="bar-track"><div class="bar-fill" style="width:${byTier[3] / Math.max(1, normal.length) * 100}%;background:var(--warning)"></div></div><div class="bar-value">${byTier[3]}</div></div>
+            <div class="bar-row"><div class="bar-label">四档</div><div class="bar-track"><div class="bar-fill" style="width:${byTier[4] / Math.max(1, normal.length) * 100}%;background:var(--danger)"></div></div><div class="bar-value">${byTier[4]}</div></div>
+            <div class="bar-row"><div class="bar-label">娱乐</div><div class="bar-track"><div class="bar-fill" style="width:${byTier[0] / Math.max(1, normal.length) * 100}%;background:var(--text-muted)"></div></div><div class="bar-value">${byTier[0]}</div></div>
+          </div>
+        </div>
+
+        <!-- Gender ratio -->
+        <div class="dash-card">
+          <h3>👥 男女比例</h3>
+          <div class="ratio-display">
+            <div class="ratio-bar">
+              <div class="ratio-male" style="width:${(male + female) > 0 ? male / (male + female) * 100 : 0}%"></div>
+              <div class="ratio-female" style="width:${(male + female) > 0 ? female / (male + female) * 100 : 0}%"></div>
+            </div>
+            <div class="ratio-legend">
+              <div><span style="color:var(--info)">●</span> 男: ${male} (${(male + female) > 0 ? Math.round(male / (male + female) * 100) : 0}%)</div>
+              <div><span style="color:var(--danger)">●</span> 女: ${female} (${(male + female) > 0 ? Math.round(female / (male + female) * 100) : 0}%)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Examiner load -->
+        <div class="dash-card">
+          <h3>👨‍🏫 各考官接单数</h3>
+          ${examinerEntries.length === 0 ? '<div class="empty-tip">暂无数据</div>' : `
+            <div class="bar-chart">
+              ${examinerEntries.map(([name, count]) => `
+                <div class="bar-row">
+                  <div class="bar-label">${name}</div>
+                  <div class="bar-track"><div class="bar-fill" style="width:${count / Math.max(...examinerEntries.map(e => e[1])) * 100}%;background:var(--success)"></div></div>
+                  <div class="bar-value">${count}</div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1577,6 +1864,7 @@ function renderBookingCard(b, canAccept, canManage) {
 
   // Build tags
   let tags = `<span class="game-tag ${game.color}">${game.icon} ${game.name}</span>`;
+  if ((b.type || 'normal') === 'transfer') tags += `<span class="assess-tag" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)">📦 平移单</span>`;
   if (b.transferredCount > 0) tags += `<span class="assess-tag" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)">🔄 转单${b.transferredCount > 1 ? '×' + b.transferredCount : ''}</span>`;
   if (b.assessmentType) {
     const cfg = DELTA_CRITERIA[b.assessmentType];
@@ -1605,7 +1893,7 @@ function renderBookingCard(b, canAccept, canManage) {
   if (b.status === 'cancelled' && !actions) actions = `<button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
 
   return `
-    <div class="booking-card${b.transferredCount > 0 && b.status === 'pending' ? ' transferred' : ''}">
+    <div class="booking-card${(b.transferredCount > 0 && b.status === 'pending') ? ' transferred' : ''}${(b.type || 'normal') === 'transfer' ? ' transfer-card' : ''}">
       <div class="card-top">
         <div class="card-tags">${tags}</div>
         <span class="status-badge ${status.class}">${status.label}</span>
@@ -1634,6 +1922,18 @@ function renderScoreDisplay(score) {
   const full = '\u2605'.repeat(score);
   const empty = '\u2605'.repeat(5 - score);
   return `<span class="score-display"><span class="score-stars">${full}<span class="empty">${empty}</span></span><span class="score-value">${score}/5</span></span>`;
+}
+
+function viewMaterialImage(src) {
+  showModal(`
+    <div class="modal-header">
+      <h3>证明资料</h3>
+      <button class="modal-close" onclick="closeModal()">\u00d7</button>
+    </div>
+    <div class="modal-body" style="text-align:center;">
+      <img src="${src}" style="max-width:100%;max-height:80vh;border-radius:8px;" />
+    </div>
+  `);
 }
 
 // ========== Actions ==========
@@ -1846,6 +2146,19 @@ function viewDetail(id) {
         ${b.examinerName ? `<div id="examinerQrPlaceholder" style="margin-top:12px;"></div>` : ''}
       </div>
       ${b.notes ? `<div class="detail-section"><h4>备注</h4><div class="feedback-box">${b.notes}</div></div>` : ''}
+      ${(b.type || 'normal') === 'transfer' && b.materials ? `
+        <div class="detail-section">
+          <h4>📦 平移证明资料（5项）</h4>
+          <div class="materials-grid">
+            ${TRANSFER_MATERIALS.map(m => `
+              <div class="material-item">
+                <div class="material-item-name">${m.name}</div>
+                ${b.materials[m.key] ? `<img src="${b.materials[m.key]}" class="material-img" onclick="viewMaterialImage('${b.materials[m.key]}')" />` : '<div class="material-empty">未上传</div>'}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
       ${b.status === 'completed' ? `
         <div class="detail-section">
           <h4>考核结果</h4>

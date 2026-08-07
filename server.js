@@ -100,6 +100,8 @@ app.post('/api/bookings', (req, res) => {
     id: 'BK' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase(),
     ...req.body,
     status: req.body.status || 'pending',
+    type: req.body.type || 'normal',
+    materials: req.body.materials || null,
     examinerName: null,
     examinerContact: null,
     acceptedAt: null,
@@ -206,14 +208,14 @@ app.get('/api/users/:username', (req, res) => {
   const user = findUser(db, req.params.username);
   if (!user) return res.status(404).json({ error: 'User not found' });
   // Don't return password hash
-  res.json({ username: user.username, role: user.role, qrCode: user.qrCode, createdAt: user.createdAt });
+  res.json({ username: user.username, role: user.role, qrCode: user.qrCode, inviteCode: user.inviteCode, createdAt: user.createdAt });
 });
 
 // Register new user
 app.post('/api/users/register', (req, res) => {
   const db = readDB();
   if (!db.users) db.users = [];
-  const { username, password, role, qrCode } = req.body;
+  const { username, password, role, qrCode, inviteCode } = req.body;
   if (!username || !password || !role) return res.status(400).json({ error: 'Missing required fields' });
   if (findUser(db, username)) return res.status(409).json({ error: '用户名已存在' });
   const user = {
@@ -221,11 +223,12 @@ app.post('/api/users/register', (req, res) => {
     passwordHash: hashPassword(password),
     role,
     qrCode: qrCode || null,
+    inviteCode: inviteCode || null,
     createdAt: Date.now()
   };
   db.users.push(user);
   writeDB(db);
-  res.status(201).json({ username: user.username, role: user.role, qrCode: user.qrCode, createdAt: user.createdAt });
+  res.status(201).json({ username: user.username, role: user.role, qrCode: user.qrCode, inviteCode: user.inviteCode, createdAt: user.createdAt });
 });
 
 // Login (verify password)
@@ -236,7 +239,7 @@ app.post('/api/users/login', (req, res) => {
   const user = findUser(db, username);
   if (!user) return res.status(404).json({ error: '用户不存在' });
   if (user.passwordHash !== hashPassword(password)) return res.status(401).json({ error: '密码错误' });
-  res.json({ username: user.username, role: user.role, qrCode: user.qrCode, createdAt: user.createdAt });
+  res.json({ username: user.username, role: user.role, qrCode: user.qrCode, inviteCode: user.inviteCode, createdAt: user.createdAt });
 });
 
 // Change password
