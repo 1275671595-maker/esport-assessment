@@ -287,6 +287,14 @@ a { color: var(--primary); text-decoration: none; }
 .star-rating .star { font-size: 1.8rem; color: var(--border-dark); cursor: pointer; transition: color .15s; }
 .star-rating .star:hover, .star-rating .star.hover { color: #f59e0b; }
 .star-rating .star.active { color: #f59e0b; }
+.pass-fail-selector { display: flex; gap: 12px; }
+.pass-fail-btn { flex: 1; padding: 14px 20px; border-radius: var(--radius-sm); border: 2px solid var(--border); background: var(--surface); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all .2s; text-align: center; }
+.pass-fail-btn:hover { border-color: var(--primary); }
+.pass-fail-btn.selected.pass { background: #dcfce7; border-color: #16a34a; color: #15803d; }
+.pass-fail-btn.selected.fail { background: #fee2e2; border-color: #dc2626; color: #b91c1c; }
+.result-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .82rem; font-weight: 700; }
+.result-badge.pass { background: #dcfce7; color: #15803d; }
+.result-badge.fail { background: #fee2e2; color: #b91c1c; }
 
 /* ========== Detail ========== */
 .detail-section { background: var(--surface-alt); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px; }
@@ -349,6 +357,22 @@ a { color: var(--primary); text-decoration: none; }
 .toast.removing { animation: toastOut .3s ease forwards; }
 @keyframes toastOut { to { opacity: 0; transform: translateX(20px); } }
 
+/* ========== Notification Alert (醒目通知) ========== */
+.notif-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.15); z-index: 3000; display: flex; justify-content: center; align-items: flex-start; padding-top: 100px; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.notif-alert { background: var(--surface); border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,.25); padding: 24px 28px; min-width: 380px; max-width: 500px; animation: notifIn .4s cubic-bezier(.34,1.56,.64,1); border: 3px solid; position: relative; }
+.notif-alert.success { border-color: var(--success); }
+.notif-alert.warning { border-color: var(--warning); }
+.notif-alert.info { border-color: var(--primary); }
+.notif-alert-icon { font-size: 2.5rem; line-height: 1; margin-bottom: 12px; }
+.notif-alert-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+.notif-alert-msg { font-size: .92rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px; }
+.notif-alert-footer { display: flex; justify-content: flex-end; gap: 10px; }
+@keyframes notifIn { from { opacity: 0; transform: translateY(-30px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes notifPulse { 0%,100% { box-shadow: 0 8px 40px rgba(0,0,0,.25); } 50% { box-shadow: 0 8px 40px rgba(0,0,0,.25), 0 0 0 8px rgba(99,102,241,.12); } }
+.notif-alert.pulse { animation: notifIn .4s cubic-bezier(.34,1.56,.64,1), notifPulse 2s ease infinite .4s; }
+@media (max-width: 768px) { .notif-alert { min-width: auto; width: calc(100% - 24px); } }
+
 /* ========== Responsive ========== */
 @media (max-width: 768px) {
   .nav-brand span { display: none; }
@@ -375,9 +399,7 @@ a { color: var(--primary); text-decoration: none; }
 
 // ========== Game Config ==========
 const GAMES = {
-  delta: { name: '三角洲行动', icon: '🔫', color: 'delta', ranks: ['青铜','白银','黄金','铂金','钻石','大师','宗师'] },
-  valorant: { name: '无畏契约', icon: '🎯', color: 'valorant', ranks: ['铁','铜','银','金','铂金','钻石','超凡','神话','辐能'] },
-  lol: { name: '英雄联盟', icon: '⚔️', color: 'lol', ranks: ['黑铁','青铜','白银','黄金','铂金','翡翠','钻石','大师','宗师','王者'] }
+  delta: { name: '三角洲行动', icon: '🔫', color: 'delta' }
 };
 
 const STATUS = {
@@ -474,15 +496,22 @@ function getCriteriaForBooking(b) {
 }
 
 // ========== Storage (Dual Mode: API + localStorage fallback) ==========
-const SESSION_KEY = 'esport_assessment_session_v2';
+const SESSION_KEY = 'esport_assessment_session_v3';
 const STORAGE_KEY = 'esport_assessment_bookings_v2';
+const USERS_KEY = 'esport_assessment_users_v3';
 function loadSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null; } catch { return null; } }
 function saveSession(data) { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); }
 function loadBookingsLocal() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
 function saveBookingsLocal(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function loadUsersLocal() { try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch { return []; } }
+function saveUsersLocal(data) { localStorage.setItem(USERS_KEY, JSON.stringify(data)); }
+
+// Simple password hash (not for real security, just to avoid plaintext storage)
+function hashPwd(pwd) { let h = 0; for (let i = 0; i < pwd.length; i++) { h = ((h << 5) - h) + pwd.charCodeAt(i); h |= 0; } return 'h' + h.toString(16); }
 
 let USE_API = false;
 const API = '/api/bookings';
+const UAPI = '/api/users';
 
 async function detectApiMode() {
   try {
@@ -499,19 +528,33 @@ async function detectApiMode() {
 }
 
 async function fetchBookings() {
+  let newData;
   if (USE_API) {
     try {
       const res = await fetch(API);
       const data = await res.json();
-      state.bookings = Array.isArray(data) ? data : [];
-      render();
-      return;
+      newData = Array.isArray(data) ? data : [];
     } catch (e) {
       console.error('API fetch failed, falling back:', e);
+      newData = loadBookingsLocal();
     }
+  } else {
+    newData = loadBookingsLocal();
   }
-  state.bookings = loadBookingsLocal();
-  render();
+  const oldBookings = state.bookings;
+  // Detect changes → fire notifications
+  checkNotifications(oldBookings, newData);
+  state.bookings = newData;
+  // Check assessment time on every poll
+  checkTimeNotifications();
+  // Only re-render if data actually changed
+  const oldJson = JSON.stringify(oldBookings);
+  const newJson = JSON.stringify(newData);
+  if (oldJson !== newJson) {
+    // Don't re-render if user is logged in and filling out the booking form
+    if (state.session && state.currentTab === 'create') return;
+    render();
+  }
 }
 
 async function createBookingData(booking) {
@@ -524,7 +567,7 @@ async function createBookingData(booking) {
     if (!res.ok) throw new Error('Create failed');
     return res.json();
   } else {
-    const newBooking = { ...booking, id: uid(), status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: Date.now() };
+    const newBooking = { ...booking, id: uid(), status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, passed: null, createdAt: Date.now() };
     state.bookings.unshift(newBooking);
     saveBookingsLocal(state.bookings);
     return newBooking;
@@ -548,7 +591,7 @@ async function actionBooking(id, action, body) {
     if (!b) throw new Error('Booking not found');
     if (action === 'accept') { b.status = 'accepted'; b.examinerName = body.examinerName; b.examinerContact = body.examinerContact; b.acceptedAt = Date.now(); }
     else if (action === 'start') { b.status = 'assessing'; b.assessingAt = Date.now(); }
-    else if (action === 'complete') { b.status = 'completed'; b.score = body.score; b.feedback = body.feedback; b.completedAt = Date.now(); }
+    else if (action === 'complete') { b.status = 'completed'; b.score = body.score; b.feedback = body.feedback; b.passed = body.passed; b.completedAt = Date.now(); }
     else if (action === 'cancel') { b.status = 'cancelled'; }
     saveBookingsLocal(state.bookings);
     return b;
@@ -558,6 +601,106 @@ async function actionBooking(id, action, body) {
 async function refreshAfterAction() {
   if (USE_API) { await fetchBookings(); }
   else { render(); }
+}
+
+// ========== User Auth (Dual Mode) ==========
+async function findUser(username) {
+  if (USE_API) {
+    try {
+      const res = await fetch(`${UAPI}/${encodeURIComponent(username)}`);
+      if (res.ok) return await res.json();
+      return null;
+    } catch { return null; }
+  } else {
+    return loadUsersLocal().find(u => u.username === username) || null;
+  }
+}
+
+async function registerUser(username, password, role, qrCode) {
+  if (USE_API) {
+    const res = await fetch(`${UAPI}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, role, qrCode })
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || '注册失败'); }
+    return res.json();
+  } else {
+    const users = loadUsersLocal();
+    const user = { username, passwordHash: hashPwd(password), role, qrCode: qrCode || null, createdAt: Date.now() };
+    users.push(user);
+    saveUsersLocal(users);
+    return user;
+  }
+}
+
+async function loginUser(username, password) {
+  if (USE_API) {
+    const res = await fetch(`${UAPI}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || '登录失败'); }
+    return res.json();
+  } else {
+    const user = loadUsersLocal().find(u => u.username === username);
+    if (!user) throw new Error('用户不存在');
+    if (user.passwordHash !== hashPwd(password)) throw new Error('密码错误');
+    return user;
+  }
+}
+
+async function changePassword(username, oldPassword, newPassword) {
+  if (USE_API) {
+    const res = await fetch(`${UAPI}/${encodeURIComponent(username)}/password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPassword, newPassword })
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || '修改失败'); }
+    return res.json();
+  } else {
+    const users = loadUsersLocal();
+    const user = users.find(u => u.username === username);
+    if (!user) throw new Error('用户不存在');
+    if (user.passwordHash !== hashPwd(oldPassword)) throw new Error('原密码错误');
+    user.passwordHash = hashPwd(newPassword);
+    saveUsersLocal(users);
+    return user;
+  }
+}
+
+async function changeQrCode(username, qrCode) {
+  if (USE_API) {
+    const res = await fetch(`${UAPI}/${encodeURIComponent(username)}/qrcode`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qrCode })
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || '修改失败'); }
+    return res.json();
+  } else {
+    const users = loadUsersLocal();
+    const user = users.find(u => u.username === username);
+    if (!user) throw new Error('用户不存在');
+    user.qrCode = qrCode;
+    saveUsersLocal(users);
+    return user;
+  }
+}
+
+async function getExaminerQrCode(username) {
+  if (USE_API) {
+    try {
+      const res = await fetch(`${UAPI}/${encodeURIComponent(username)}`);
+      if (res.ok) { const u = await res.json(); return u.qrCode || null; }
+      return null;
+    } catch { return null; }
+  } else {
+    const user = loadUsersLocal().find(u => u.username === username);
+    return user ? user.qrCode : null;
+  }
 }
 
 function updateSyncBadge() {
@@ -583,7 +726,7 @@ let state = {
   currentTab: 'create',
   filterGame: 'all',
   editingScore: 0,
-  form: { game: '', gender: '', platform: '', assessmentType: '', assessmentMode: '', assessmentTier: 0 }
+  form: { game: 'delta', gender: '', platform: '', assessmentType: '', assessmentMode: '', assessmentTier: 0 }
 };
 
 // ========== Utility ==========
@@ -612,16 +755,140 @@ function toast(msg, type = 'info') {
   setTimeout(() => { el.classList.add('removing'); setTimeout(() => el.remove(), 300); }, 3000);
 }
 
+// ========== Prominent Notification (醒目通知弹窗) ==========
+function showNotification(icon, title, msg, type = 'info') {
+  const overlay = document.createElement('div');
+  overlay.className = 'notif-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div class="notif-alert ${type} pulse">
+      <div class="notif-alert-icon">${icon}</div>
+      <div class="notif-alert-title">${title}</div>
+      <div class="notif-alert-msg">${msg}</div>
+      <div class="notif-alert-footer">
+        <button class="btn btn-primary" onclick="this.closest('.notif-overlay').remove()">我知道了</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 20000);
+}
+
+// ========== Notification System ==========
+function initNotifications() {
+  // Mark all current bookings as "already seen" so we don't spam on login
+  state.notifiedBookings = {};
+  for (const b of state.bookings) {
+    const isAccepted = b.status === 'accepted' || b.status === 'assessing';
+    state.notifiedBookings[b.id] = {
+      newBooking: true,           // Don't re-notify about existing bookings as "new"
+      accepted: isAccepted,       // Only mark accepted if already accepted; pending ones will notify when accepted
+      completed: b.status === 'completed',  // Don't re-notify about already completed bookings
+      timeNotified: false
+    };
+    if (isAccepted) {
+      const assessTime = new Date(b.preferredTime).getTime();
+      if (Date.now() > assessTime + 120000) {
+        state.notifiedBookings[b.id].timeNotified = true;
+      }
+    } else {
+      state.notifiedBookings[b.id].timeNotified = true; // Skip time notification for non-accepted bookings
+    }
+  }
+  // Check time notifications right away on login
+  checkTimeNotifications();
+}
+
+function checkNotifications(oldBookings, newBookings) {
+  if (!state.session || !state.notifiedBookings) return;
+  const role = state.session.role;
+  const username = state.session.username;
+
+  for (const nb of newBookings) {
+    const old = oldBookings.find(b => b.id === nb.id);
+    const ns = state.notifiedBookings[nb.id] || { newBooking: false, accepted: false, completed: false, timeNotified: false };
+
+    // Examiner: new booking arrived
+    if (role === 'examiner' && !old && nb.status === 'pending' && !ns.newBooking) {
+      ns.newBooking = true;
+      showNotification('\uD83D\uDD14', '新来单！', `考生 ${nb.examineeName} 提交了一个新的考核预约，请前往接单大厅查看。`, 'info');
+    }
+
+    // Examinee: booking was accepted
+    if (role === 'examinee' && nb.examineeContact === username) {
+      if ((!old || old.status === 'pending') && (nb.status === 'accepted' || nb.status === 'assessing') && !ns.accepted) {
+        ns.accepted = true;
+        showNotification('\u2705', '考官已接单！', `考官 ${nb.examinerName} 已接取您的预约。请在"我的预约"中查看考官微信二维码，及时联系考官。`, 'success');
+      }
+      // Examinee: assessment completed - notify pass/fail result
+      if ((!old || old.status !== 'completed') && nb.status === 'completed' && !ns.completed) {
+        ns.completed = true;
+        const passed = nb.passed;
+        const resultText = passed === true ? '🎉 恭喜您通过了考核！' : passed === false ? '❌ 很遗憾，考核未通过' : '考核已完成';
+        const resultType = passed === true ? 'success' : passed === false ? 'warning' : 'info';
+        const detailMsg = nb.feedback ? `考官评价：${nb.feedback}` : '请前往"我的预约"查看详情';
+        showNotification(passed === true ? '🎉' : '📋', '考核结果出炉！', `${resultText}<br><br>${detailMsg}`, resultType);
+      }
+    }
+
+    state.notifiedBookings[nb.id] = ns;
+  }
+}
+
+function checkTimeNotifications() {
+  if (!state.session || !state.notifiedBookings) return;
+  const role = state.session.role;
+  const username = state.session.username;
+  const now = Date.now();
+
+  for (const b of state.bookings) {
+    const ns = state.notifiedBookings[b.id] || { newBooking: false, accepted: false, completed: false, timeNotified: false };
+    const isInvolved = (role === 'examinee' && b.examineeContact === username) ||
+                       (role === 'examiner' && b.examinerContact === username);
+
+    if (isInvolved && (b.status === 'accepted' || b.status === 'assessing') && !ns.timeNotified) {
+      const assessTime = new Date(b.preferredTime).getTime();
+      if (now >= assessTime) {
+        ns.timeNotified = true;
+        const otherLabel = role === 'examinee' ? `考官 ${b.examinerName}` : `考生 ${b.examineeName}`;
+        showNotification('\u23F0', '考核时间到了！', `您与${otherLabel}的考核预约时间已到（${fmtFullTime(assessTime)}），请准备开始考核。`, 'warning');
+      }
+    }
+    state.notifiedBookings[b.id] = ns;
+  }
+}
+
 // ========== Render ==========
 function render() {
   const app = document.getElementById('app');
   if (!state.session) { app.innerHTML = renderRoleSelection(); return; }
   app.innerHTML = renderNav() + `<div class="main">${renderContent()}</div>`;
   updateSyncBadge();
+  loadCardQrCodes();
+}
+
+function loadCardQrCodes() {
+  if (!state.session || state.session.role !== 'examinee') return;
+  const myBookings = state.bookings.filter(b =>
+    b.examineeContact === state.session.username && b.examinerName &&
+    ['accepted', 'assessing', 'completed'].includes(b.status)
+  );
+  for (const b of myBookings) {
+    const el = document.getElementById(`cardQr_${b.id}`);
+    if (el && el.querySelector('span') && el.querySelector('span').textContent === '加载中...') {
+      getExaminerQrCode(b.examinerName).then(qr => {
+        if (el && qr) {
+          el.innerHTML = `<img src="${qr}" style="max-width:90px;max-height:90px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" onclick="viewDetail('${b.id}')" title="点击查看详情" />`;
+        } else if (el) {
+          el.innerHTML = `<span style="font-size:.82rem;color:var(--text-muted);">暂无</span>`;
+        }
+      });
+    }
+  }
 }
 
 function renderNav() {
-  const { role, name } = state.session;
+  const { role, username } = state.session;
   const roleLabel = role === 'examinee' ? '考生' : '考官';
   const roleIcon = role === 'examinee' ? '\ud83c\udf93' : '\ud83d\udccb';
   return `
@@ -634,7 +901,8 @@ function renderNav() {
         <span class="sync-badge" id="syncBadge" title="数据同步状态"><span class="sync-dot"></span>检测中...</span>
         <button class="nav-btn highlight" onclick="showCriteriaRef()">\ud83d\udccd 考核标准</button>
         <div class="nav-role-badge ${role}"><span>${roleIcon}</span><span>${roleLabel}</span></div>
-        <div class="nav-user">${name}</div>
+        <div class="nav-user">${username}</div>
+        <button class="nav-btn" onclick="showSettings()">\u2699\ufe0f 设置</button>
         <button class="nav-btn" onclick="switchRole()">切换身份</button>
       </div>
     </nav>
@@ -650,7 +918,7 @@ function renderRoleSelection() {
   return `
     <div class="role-select">
       <h1>\ud83c\udfae 电竞考核匹配平台</h1>
-      <p class="subtitle">三角洲行动 \u00b7 无畏契约 \u00b7 英雄联盟 \u2014 考生考官一键匹配</p>
+      <p class="subtitle">三角洲行动 \u2014 考生考官一键匹配</p>
       <div class="role-cards">
         <div class="role-card" onclick="selectRole('examinee')">
           <div class="icon examinee">\ud83c\udf93</div>
@@ -677,75 +945,241 @@ function renderRoleSelection() {
   `;
 }
 
-let selectedExaminerGames = [];
+const EXAMINER_INVITE_CODES = ['10250', '10525', '10424'];
+
+let loginRole = null;
+let loginIsNew = null;
+let loginQrCode = null;
 
 function selectRole(role) {
+  loginRole = role;
+  loginIsNew = null;
+  loginQrCode = null;
   const label = role === 'examinee' ? '考生' : '考官';
-  selectedExaminerGames = [];
   showModal(`
     <div class="modal-header">
-      <h3>${label}身份登记</h3>
+      <h3>${label}登录</h3>
       <button class="modal-close" onclick="closeModal()">\u00d7</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">昵称 <span class="required">*</span></label>
-        <input type="text" class="form-input" id="roleName" placeholder="请输入您的昵称" maxlength="20">
-      </div>
-      <div class="form-group">
-        <label class="form-label">联系方式 <span class="required">*</span></label>
-        <input type="text" class="form-input" id="roleContact" placeholder="QQ号或微信号" maxlength="30">
-      </div>
       ${role === 'examiner' ? `
-      <div class="form-group">
-        <label class="form-label">擅长游戏 <span class="required">*</span></label>
-        <div class="option-grid cols-3" id="examinerGames">
-          ${Object.entries(GAMES).map(([k, g]) => `
-            <div class="option-card" data-game="${k}" onclick="toggleExaminerGame(this)">
-              <div class="opt-icon">${g.icon}</div>
-              <div class="opt-name">${g.name}</div>
-            </div>
-          `).join('')}
+        <div class="form-group">
+          <label class="form-label">邀请码 <span class="required">*</span></label>
+          <input type="text" class="form-input" id="loginInviteCode" placeholder="请输入邀请码" maxlength="10">
+          <p style="font-size:.82rem;color:var(--text-muted);margin-top:4px;">考官注册及登录均需填写邀请码</p>
         </div>
-      </div>` : ''}
+      ` : ''}
+      <div class="form-group">
+        <label class="form-label">用户名 <span class="required">*</span></label>
+        <input type="text" class="form-input" id="loginUsername" placeholder="请输入用户名" maxlength="20" oninput="onUsernameInput()">
+      </div>
+      <div id="loginExtraFields"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="confirmRole('${role}')">确定</button>
+      <button class="btn btn-primary" id="loginSubmitBtn" onclick="submitLogin()" disabled>登录/注册</button>
     </div>
   `);
 }
 
-function toggleExaminerGame(el) {
-  el.classList.toggle('selected');
-  selectedExaminerGames = Array.from(document.querySelectorAll('#examinerGames .option-card.selected')).map(e => e.dataset.game);
+let _usernameCheckTimer = null;
+function onUsernameInput() {
+  clearTimeout(_usernameCheckTimer);
+  _usernameCheckTimer = setTimeout(async () => {
+    const username = document.getElementById('loginUsername').value.trim();
+    const extra = document.getElementById('loginExtraFields');
+    const submitBtn = document.getElementById('loginSubmitBtn');
+    if (!username) { extra.innerHTML = ''; loginIsNew = null; submitBtn.disabled = true; return; }
+    const user = await findUser(username);
+    if (user && user.role === loginRole) {
+      loginIsNew = false;
+      extra.innerHTML = `
+        <div class="form-group">
+          <label class="form-label">密码 <span class="required">*</span></label>
+          <input type="password" class="form-input" id="loginPassword" placeholder="请输入密码" maxlength="30">
+        </div>
+        <p style="font-size:.82rem;color:var(--text-muted);">欢迎回来，请输入密码登录</p>
+      `;
+      submitBtn.textContent = '登录';
+      submitBtn.disabled = false;
+    } else {
+      loginIsNew = true;
+      extra.innerHTML = `
+        <div class="form-group">
+          <label class="form-label">密码 <span class="required">*</span></label>
+          <input type="password" class="form-input" id="loginPassword" placeholder="请设置密码" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">确认密码 <span class="required">*</span></label>
+          <input type="password" class="form-input" id="loginPassword2" placeholder="请再次输入密码" maxlength="30">
+        </div>
+        ${loginRole === 'examiner' ? `
+          <div class="form-group">
+            <label class="form-label">微信二维码 <span class="required">*</span></label>
+            <input type="file" class="form-input" id="loginQrFile" accept="image/*" onchange="onQrFileSelected(this)">
+            <div id="loginQrPreview" style="margin-top:8px;"></div>
+          </div>
+        ` : ''}
+        <p style="font-size:.82rem;color:var(--text-muted);">首次登录，请设置密码${loginRole === 'examiner' ? '并上传微信二维码' : ''}</p>
+      `;
+      submitBtn.textContent = '注册';
+      submitBtn.disabled = false;
+    }
+  }, 300);
 }
 
-function confirmRole(role) {
-  const name = document.getElementById('roleName').value.trim();
-  const contact = document.getElementById('roleContact').value.trim();
-  if (!name) { toast('请输入昵称', 'error'); return; }
-  if (!contact) { toast('请输入联系方式', 'error'); return; }
-  if (role === 'examiner' && selectedExaminerGames.length === 0) { toast('请至少选择一个擅长游戏', 'error'); return; }
-  state.session = { role, name, contact, games: role === 'examiner' ? selectedExaminerGames : null, loginAt: Date.now() };
-  saveSession(state.session);
-  state.currentTab = role === 'examinee' ? 'create' : 'hall';
-  closeModal();
-  toast(`欢迎，${name}！`, 'success');
-  render();
+function onQrFileSelected(input) {
+  const file = input.files[0];
+  if (!file) { loginQrCode = null; document.getElementById('loginQrPreview').innerHTML = ''; return; }
+  if (file.size > 2 * 1024 * 1024) { toast('图片不能超过2MB', 'error'); input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    loginQrCode = e.target.result;
+    document.getElementById('loginQrPreview').innerHTML = `<img src="${loginQrCode}" style="max-width:150px;border-radius:8px;border:1px solid var(--border);" />`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  if (!username) { toast('请输入用户名', 'error'); return; }
+  if (loginRole === 'examiner') {
+    const inviteCode = document.getElementById('loginInviteCode')?.value.trim();
+    if (!inviteCode) { toast('请输入邀请码', 'error'); return; }
+    if (!EXAMINER_INVITE_CODES.includes(inviteCode)) { toast('邀请码无效', 'error'); return; }
+  }
+  const password = document.getElementById('loginPassword').value;
+  if (!password) { toast('请输入密码', 'error'); return; }
+  try {
+    if (loginIsNew) {
+      const password2 = document.getElementById('loginPassword2')?.value;
+      if (password !== password2) { toast('两次密码不一致', 'error'); return; }
+      if (loginRole === 'examiner' && !loginQrCode) { toast('请上传微信二维码', 'error'); return; }
+      await registerUser(username, password, loginRole, loginRole === 'examiner' ? loginQrCode : null);
+    } else {
+      await loginUser(username, password);
+    }
+    state.session = { role: loginRole, username, loginAt: Date.now() };
+    saveSession(state.session);
+    state.currentTab = loginRole === 'examinee' ? 'create' : 'hall';
+    closeModal();
+    toast(`欢迎，${username}！`, 'success');
+    render();
+    initNotifications();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
 }
 
 function switchRole() {
   showConfirm('确定要切换身份吗？当前会话将结束。', () => {
     state.session = null;
+    state.notifiedBookings = null;
     saveSession(null);
     render();
   });
 }
 
+// ========== Settings (Change Password / QR Code) ==========
+async function showSettings() {
+  const { role, username } = state.session;
+  let currentQr = null;
+  if (role === 'examiner') {
+    const user = await findUser(username);
+    currentQr = user ? user.qrCode : null;
+  }
+  showModal(`
+    <div class="modal-header">
+      <h3>\u2699\ufe0f 账号设置</h3>
+      <button class="modal-close" onclick="closeModal()">\u00d7</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-section">
+        <h4>修改密码</h4>
+        <div class="form-group">
+          <label class="form-label">原密码 <span class="required">*</span></label>
+          <input type="password" class="form-input" id="settingsOldPwd" placeholder="请输入原密码" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">新密码 <span class="required">*</span></label>
+          <input type="password" class="form-input" id="settingsNewPwd" placeholder="请输入新密码" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">确认新密码 <span class="required">*</span></label>
+          <input type="password" class="form-input" id="settingsNewPwd2" placeholder="请再次输入新密码" maxlength="30">
+        </div>
+        <button class="btn btn-primary" onclick="submitChangePwd()" style="width:100%;margin-top:8px;">确认修改密码</button>
+      </div>
+      ${role === 'examiner' ? `
+        <div class="detail-section" style="border-top:1px solid var(--border);margin-top:24px;padding-top:16px;">
+          <h4>修改微信二维码</h4>
+          ${currentQr ? `<div style="margin-bottom:12px;"><p style="font-size:.82rem;color:var(--text-muted);margin-bottom:4px;">当前二维码：</p><img src="${currentQr}" style="max-width:150px;border-radius:8px;border:1px solid var(--border);" /></div>` : ''}
+          <div class="form-group">
+            <label class="form-label">上传新二维码</label>
+            <input type="file" class="form-input" id="settingsQrFile" accept="image/*" onchange="onSettingsQrSelected(this)">
+            <div id="settingsQrPreview" style="margin-top:8px;"></div>
+          </div>
+          <button class="btn btn-primary" onclick="submitChangeQr()" style="width:100%;margin-top:8px;">确认修改二维码</button>
+        </div>
+      ` : ''}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">关闭</button>
+    </div>
+  `);
+}
+
+let _settingsNewQr = null;
+function onSettingsQrSelected(input) {
+  const file = input.files[0];
+  if (!file) { _settingsNewQr = null; document.getElementById('settingsQrPreview').innerHTML = ''; return; }
+  if (file.size > 2 * 1024 * 1024) { toast('图片不能超过2MB', 'error'); input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    _settingsNewQr = e.target.result;
+    document.getElementById('settingsQrPreview').innerHTML = `<img src="${_settingsNewQr}" style="max-width:150px;border-radius:8px;border:1px solid var(--border);" />`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitChangePwd() {
+  const oldPwd = document.getElementById('settingsOldPwd').value;
+  const newPwd = document.getElementById('settingsNewPwd').value;
+  const newPwd2 = document.getElementById('settingsNewPwd2').value;
+  if (!oldPwd) { toast('请输入原密码', 'error'); return; }
+  if (!newPwd) { toast('请输入新密码', 'error'); return; }
+  if (newPwd !== newPwd2) { toast('两次新密码不一致', 'error'); return; }
+  if (oldPwd === newPwd) { toast('新密码不能与原密码相同', 'error'); return; }
+  try {
+    await changePassword(state.session.username, oldPwd, newPwd);
+    toast('密码修改成功！', 'success');
+    document.getElementById('settingsOldPwd').value = '';
+    document.getElementById('settingsNewPwd').value = '';
+    document.getElementById('settingsNewPwd2').value = '';
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function submitChangeQr() {
+  if (!_settingsNewQr) { toast('请先选择图片', 'error'); return; }
+  try {
+    await changeQrCode(state.session.username, _settingsNewQr);
+    toast('二维码修改成功！', 'success');
+    _settingsNewQr = null;
+    document.getElementById('settingsQrFile').value = '';
+    document.getElementById('settingsQrPreview').innerHTML = '';
+    // Refresh the modal to show updated QR
+    closeModal();
+    showSettings();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
 // ========== Examinee View ==========
 function renderExaminee() {
-  const my = state.bookings.filter(b => b.examineeContact === state.session.contact);
+  const my = state.bookings.filter(b => b.examineeContact === state.session.username);
   const pending = my.filter(b => b.status === 'pending').length;
   const active = my.filter(b => ['accepted','assessing'].includes(b.status)).length;
   const done = my.filter(b => b.status === 'completed').length;
@@ -765,27 +1199,14 @@ function renderExaminee() {
 }
 
 function renderBookingForm() {
-  // Reset form state
-  state.form = { game: '', gender: '', platform: '', assessmentType: '', assessmentMode: '', assessmentTier: 0 };
+  // Reset form state - game auto-set to delta
+  state.form = { game: 'delta', gender: '', platform: '', assessmentType: '', assessmentMode: '', assessmentTier: 0 };
 
   return `
     <div class="form-container">
       <h2 class="form-title">发起考核预约</h2>
       <p class="form-desc">填写以下信息，提交后考官将在大厅看到您的预约并接单</p>
       <form id="bookingForm" onsubmit="submitBooking(event)">
-        <!-- Game -->
-        <div class="form-group">
-          <label class="form-label">选择游戏 <span class="required">*</span></label>
-          <div class="option-grid cols-3" id="gameSelect">
-            ${Object.entries(GAMES).map(([k, g]) => `
-              <div class="option-card" data-game="${k}" onclick="selectGame('${k}')">
-                <div class="opt-icon">${g.icon}</div>
-                <div class="opt-name">${g.name}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
         <!-- Gender & Platform -->
         <div class="form-row">
           <div class="form-group">
@@ -804,23 +1225,11 @@ function renderBookingForm() {
           </div>
         </div>
 
-        <!-- Rank & Game ID -->
+        <!-- WeChat & Time -->
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">当前段位 <span class="required">*</span></label>
-            <select class="form-select" id="rankInput" required disabled><option value="">请先选择游戏</option></select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">游戏ID <span class="required">*</span></label>
-            <input type="text" class="form-input" id="gameIdInput" placeholder="游戏内ID" required maxlength="30">
-          </div>
-        </div>
-
-        <!-- Server & Time -->
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">游戏大区/服务器 <span class="required">*</span></label>
-            <input type="text" class="form-input" id="serverInput" placeholder="如：微信Q区 / 电信一区" required maxlength="30">
+            <label class="form-label">微信号 <span class="required">*</span></label>
+            <input type="text" class="form-input" id="wechatInput" placeholder="请输入微信号" required maxlength="30">
           </div>
           <div class="form-group">
             <label class="form-label">期望考核时间 <span class="required">*</span></label>
@@ -828,8 +1237,8 @@ function renderBookingForm() {
           </div>
         </div>
 
-        <!-- Delta-specific Assessment Section -->
-        <div id="deltaAssessSection" style="display:none;">
+        <!-- Delta Assessment Section -->
+        <div id="deltaAssessSection">
           <div style="border-top:1px solid var(--border);margin:8px 0 24px;padding-top:8px;">
             <h3 style="font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:4px;">🔫 三角洲行动考核类型</h3>
             <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:16px;">选择考核类型和档位，系统将展示对应考核标准</p>
@@ -890,7 +1299,7 @@ function renderBookingForm() {
         <!-- Notes -->
         <div class="form-group">
           <label class="form-label">备注说明</label>
-          <textarea class="form-textarea" id="notesInput" placeholder="补充信息，如擅长位置、武器/英雄偏好、特殊需求等" maxlength="500"></textarea>
+          <textarea class="form-textarea" id="notesInput" placeholder="补充信息，如擅长位置、武器偏好、特殊需求等" maxlength="500"></textarea>
         </div>
 
         <div style="display:flex;gap:12px;">
@@ -903,26 +1312,7 @@ function renderBookingForm() {
 }
 
 // ========== Form Selection Handlers ==========
-function selectGame(gameKey) {
-  document.querySelectorAll('#gameSelect .option-card').forEach(el => {
-    el.classList.toggle('selected', el.dataset.game === gameKey);
-  });
-  state.form.game = gameKey;
-  const rankSelect = document.getElementById('rankInput');
-  rankSelect.disabled = false;
-  rankSelect.innerHTML = '<option value="">请选择段位</option>' + GAMES[gameKey].ranks.map(r => `<option value="${r}">${r}</option>`).join('');
-  // Show/hide delta assessment section
-  const deltaSection = document.getElementById('deltaAssessSection');
-  deltaSection.style.display = gameKey === 'delta' ? 'block' : 'none';
-  // Reset delta form selections
-  state.form.assessmentType = '';
-  state.form.assessmentMode = '';
-  state.form.assessmentTier = 0;
-  document.querySelectorAll('#assessTypeSelect .option-card, #modeSelect .option-card, #tierSelect .option-card').forEach(el => el.classList.remove('selected'));
-  document.getElementById('companionFields').style.display = 'none';
-  document.getElementById('criteriaPanel').innerHTML = '';
-}
-
+// Game is always delta, no selection needed
 function selectOption(field, val, el) {
   document.querySelectorAll(`#${field}Select .option-card`).forEach(e => e.classList.remove('selected'));
   el.classList.add('selected');
@@ -1066,53 +1456,46 @@ function renderPrecautionsHtml() {
 // ========== Submit Booking ==========
 async function submitBooking(e) {
   e.preventDefault();
-  const game = state.form.game;
-  if (!game) { toast('请选择游戏', 'error'); return; }
+  const game = 'delta';
   const gender = state.form.gender;
   if (!gender) { toast('请选择性别', 'error'); return; }
   const platform = state.form.platform;
   if (!platform) { toast('请选择端游/手游', 'error'); return; }
-  const rank = document.getElementById('rankInput').value;
-  const gameId = document.getElementById('gameIdInput').value.trim();
-  const server = document.getElementById('serverInput').value.trim();
+  const wechat = document.getElementById('wechatInput').value.trim();
   const preferredTime = document.getElementById('timeInput').value;
   const notes = document.getElementById('notesInput').value.trim();
 
-  if (!rank) { toast('请选择段位', 'error'); return; }
-  if (!gameId) { toast('请输入游戏ID', 'error'); return; }
-  if (!server) { toast('请输入大区/服务器', 'error'); return; }
+  if (!wechat) { toast('请输入微信号', 'error'); return; }
   if (!preferredTime) { toast('请选择期望考核时间', 'error'); return; }
 
   // Delta-specific validation
   let assessmentType = null, assessmentMode = null, assessmentTier = null, seasonRank = null, kd = null;
-  if (game === 'delta') {
-    assessmentType = state.form.assessmentType;
-    if (!assessmentType) { toast('请选择考核类型', 'error'); return; }
-    // Gender check for entertainment
-    if (assessmentType === 'entertainment' && gender === 'male') {
-      toast('娱乐考核仅限女性考生', 'error'); return;
-    }
-    if (assessmentType === 'companion') {
-      assessmentMode = state.form.assessmentMode;
-      assessmentTier = state.form.assessmentTier;
-      if (!assessmentMode) { toast('请选择单考/双考', 'error'); return; }
-      if (!assessmentTier) { toast('请选择考核档位', 'error'); return; }
-      seasonRank = document.getElementById('seasonRankInput').value.trim();
-      kd = document.getElementById('kdInput').value;
-      if (!seasonRank) { toast('请输入赛季段位', 'error'); return; }
-      if (!kd) { toast('请输入KD', 'error'); return; }
-      if (parseFloat(kd) < 1.5) { toast('KD不得低于1.5，不符合陪玩/护航考核账号要求', 'error'); return; }
-      // Tier 1 (娱技) female-only check
-      if (assessmentTier === 1 && gender === 'male') {
-        toast('一档（娱技）仅可女生报考', 'error'); return;
-      }
+  assessmentType = state.form.assessmentType;
+  if (!assessmentType) { toast('请选择考核类型', 'error'); return; }
+  // Gender check for entertainment
+  if (assessmentType === 'entertainment' && gender === 'male') {
+    toast('娱乐考核仅限女性考生', 'error'); return;
+  }
+  if (assessmentType === 'companion') {
+    assessmentMode = state.form.assessmentMode;
+    assessmentTier = state.form.assessmentTier;
+    if (!assessmentMode) { toast('请选择单考/双考', 'error'); return; }
+    if (!assessmentTier) { toast('请选择考核档位', 'error'); return; }
+    seasonRank = document.getElementById('seasonRankInput').value.trim();
+    kd = document.getElementById('kdInput').value;
+    if (!seasonRank) { toast('请输入赛季段位', 'error'); return; }
+    if (!kd) { toast('请输入KD', 'error'); return; }
+    if (parseFloat(kd) < 1.5) { toast('KD不得低于1.5，不符合陪玩/护航考核账号要求', 'error'); return; }
+    // Tier 1 (娱技) female-only check
+    if (assessmentTier === 1 && gender === 'male') {
+      toast('一档（娱技）仅可女生报考', 'error'); return;
     }
   }
 
   const booking = {
-    examineeName: state.session.name,
-    examineeContact: state.session.contact,
-    game, gender, platform, rank, gameId, server, preferredTime, notes,
+    examineeName: state.session.username,
+    examineeContact: state.session.username,
+    game, gender, platform, wechat, preferredTime, notes,
     assessmentType, assessmentMode, assessmentTier, seasonRank, kd
   };
   try {
@@ -1134,10 +1517,9 @@ function renderExamineeBookings(bookings) {
 
 // ========== Examiner View ==========
 function renderExaminer() {
-  const myGames = state.session.games || [];
-  const pendingBookings = state.bookings.filter(b => b.status === 'pending' && (myGames.length === 0 || myGames.includes(b.game)));
-  const myActive = state.bookings.filter(b => b.examinerContact === state.session.contact && ['accepted','assessing'].includes(b.status));
-  const myDone = state.bookings.filter(b => b.examinerContact === state.session.contact && b.status === 'completed');
+  const pendingBookings = state.bookings.filter(b => b.status === 'pending');
+  const myActive = state.bookings.filter(b => b.examinerContact === state.session.username && ['accepted','assessing'].includes(b.status));
+  const myDone = state.bookings.filter(b => b.examinerContact === state.session.username && b.status === 'completed');
 
   return `
     <div class="stats-row">
@@ -1157,15 +1539,8 @@ function renderExaminer() {
 }
 
 function renderHall(bookings) {
-  let filtered = state.filterGame !== 'all' ? bookings.filter(b => b.game === state.filterGame) : bookings;
   return `
-    <div class="filter-bar">
-      <div class="filter-group">
-        <button class="filter-btn ${state.filterGame==='all'?'active':''}" onclick="setFilter('all')">全部</button>
-        ${Object.entries(GAMES).map(([k, g]) => `<button class="filter-btn ${state.filterGame===k?'active':''}" onclick="setFilter('${k}')">${g.icon} ${g.name}</button>`).join('')}
-      </div>
-    </div>
-    ${filtered.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎯</div><h3>暂无可接订单</h3><p>目前没有待接单的考核预约，请稍后再来</p></div>` : `<div class="cards-grid">${filtered.map(b => renderBookingCard(b, true)).join('')}</div>`}
+    ${bookings.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎯</div><h3>暂无可接订单</h3><p>目前没有待接单的考核预约，请稍后再来</p></div>` : `<div class="cards-grid">${bookings.map(b => renderBookingCard(b, true)).join('')}</div>`}
   `;
 }
 
@@ -1184,7 +1559,7 @@ function renderBookingCard(b, canAccept, canManage) {
   const game = GAMES[b.game];
   const status = STATUS[b.status];
   const isExaminee = state.session.role === 'examinee';
-  const isMyExaminer = b.examinerContact === state.session.contact;
+  const isMyExaminer = b.examinerContact === state.session.username;
 
   // Build tags
   let tags = `<span class="game-tag ${game.color}">${game.icon} ${game.name}</span>`;
@@ -1222,13 +1597,13 @@ function renderBookingCard(b, canAccept, canManage) {
       </div>
       <div class="card-body">
         <div class="info-row"><span class="label">考生</span><span class="value">${b.examineeName}</span></div>
-        <div class="info-row"><span class="label">段位</span><span class="value">${b.rank}</span></div>
-        <div class="info-row"><span class="label">游戏ID</span><span class="value">${b.gameId}</span></div>
-        <div class="info-row"><span class="label">大区</span><span class="value">${b.server}</span></div>
+        <div class="info-row"><span class="label">微信号</span><span class="value">${b.wechat || '--'}</span></div>
         ${b.seasonRank ? `<div class="info-row"><span class="label">赛季段位</span><span class="value">${b.seasonRank}</span></div>` : ''}
         ${b.kd ? `<div class="info-row"><span class="label">KD</span><span class="value">${b.kd}</span></div>` : ''}
         <div class="info-row"><span class="label">期望时间</span><span class="value">${fmtFullTime(new Date(b.preferredTime).getTime())}</span></div>
         ${b.examinerName ? `<div class="info-row"><span class="label">考官</span><span class="value">${b.examinerName}</span></div>` : ''}
+        ${b.examinerName && isExaminee ? `<div class="info-row" style="align-items:flex-start;"><span class="label">考官二维码</span><span class="value" id="cardQr_${b.id}"><span style="font-size:.82rem;color:var(--text-muted);">加载中...</span></span></div>` : ''}
+        ${b.status === 'completed' && b.passed !== null && b.passed !== undefined ? `<div class="info-row"><span class="label">考核结果</span><span class="value"><span class="result-badge ${b.passed ? 'pass' : 'fail'}">${b.passed ? '✅ 通过' : '❌ 未通过'}</span></span></div>` : ''}
         ${b.score !== null ? `<div class="info-row"><span class="label">评分</span><span class="value">${renderScoreDisplay(b.score)}</span></div>` : ''}
         ${b.notes ? `<div class="card-notes">💬 ${b.notes}</div>` : ''}
       </div>
@@ -1256,7 +1631,7 @@ function acceptBooking(id) {
   if (b.status !== 'pending') { toast('该订单已被接取', 'warning'); return; }
   showConfirm(`确认接取 ${b.examineeName} 的 ${GAMES[b.game].name} 考核订单？`, async () => {
     try {
-      await actionBooking(id, 'accept', { examinerName: state.session.name, examinerContact: state.session.contact });
+      await actionBooking(id, 'accept', { examinerName: state.session.username, examinerContact: state.session.username });
       toast('接单成功！', 'success');
       await refreshAfterAction();
     } catch (e) {
@@ -1279,6 +1654,7 @@ function showAssessForm(id) {
   const b = state.bookings.find(x => x.id === id);
   if (!b) return;
   state.editingScore = 0;
+  state.editingPassed = null;
   const criteria = getCriteriaForBooking(b);
   const criteriaHtml = criteria ? `
     <div class="detail-section" style="background:var(--primary-bg);">
@@ -1300,15 +1676,22 @@ function showAssessForm(id) {
     <div class="modal-body">
       ${criteriaHtml}
       <div class="form-group">
-        <label class="form-label">考核评分 <span class="required">*</span></label>
+        <label class="form-label">考核结果 <span class="required">*</span></label>
+        <div class="pass-fail-selector">
+          <div class="pass-fail-btn pass" id="passBtn" onclick="setPassed(true)">✅ 考核通过</div>
+          <div class="pass-fail-btn fail" id="failBtn" onclick="setPassed(false)">❌ 未通过</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">考核评分</label>
         <div class="star-rating" id="starRating">
           ${[1,2,3,4,5].map(n => `<span class="star" data-score="${n}" onclick="setScore(${n})" onmouseover="hoverScore(${n})" onmouseout="resetHover()">\u2605</span>`).join('')}
         </div>
-        <div class="form-hint" id="scoreHint">请选择评分</div>
+        <div class="form-hint" id="scoreHint">请选择评分（选填）</div>
       </div>
       <div class="form-group">
-        <label class="form-label">考核反馈 <span class="required">*</span></label>
-        <textarea class="form-textarea" id="feedbackInput" placeholder="对考生的操作、意识、配合、沟通等方面进行评价，并结合考核标准说明是否达标" style="min-height:120px" maxlength="1000"></textarea>
+        <label class="form-label">考核反馈</label>
+        <textarea class="form-textarea" id="feedbackInput" placeholder="对考生的操作、意识、配合、沟通等方面进行评价（选填）" style="min-height:120px" maxlength="1000"></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -1328,17 +1711,23 @@ function hoverScore(n) { document.querySelectorAll('#starRating .star').forEach(
 function resetHover() { document.querySelectorAll('#starRating .star').forEach(el => { el.classList.toggle('active', parseInt(el.dataset.score) <= state.editingScore); el.classList.remove('hover'); }); }
 
 async function submitAssessment(id) {
-  if (state.editingScore === 0) { toast('请选择评分', 'error'); return; }
+  if (state.editingPassed === null) { toast('请选择考核结果（通过/未通过）', 'error'); return; }
   const feedback = document.getElementById('feedbackInput').value.trim();
-  if (!feedback) { toast('请填写考核反馈', 'error'); return; }
+  const score = state.editingScore > 0 ? state.editingScore : null;
   try {
-    await actionBooking(id, 'complete', { score: state.editingScore, feedback });
+    await actionBooking(id, 'complete', { score, feedback, passed: state.editingPassed });
     closeModal();
     toast('考核评价已提交！', 'success');
     await refreshAfterAction();
   } catch (e) {
     toast('提交失败：' + e.message, 'error');
   }
+}
+
+function setPassed(passed) {
+  state.editingPassed = passed;
+  document.getElementById('passBtn').classList.toggle('selected', passed === true);
+  document.getElementById('failBtn').classList.toggle('selected', passed === false);
 }
 
 function cancelBooking(id) {
@@ -1409,10 +1798,8 @@ function viewDetail(id) {
         <div class="detail-row"><span class="label">昵称</span><span class="value">${b.examineeName}</span></div>
         <div class="detail-row"><span class="label">性别</span><span class="value">${b.gender === 'male' ? '男' : b.gender === 'female' ? '女' : '--'}</span></div>
         <div class="detail-row"><span class="label">平台</span><span class="value">${b.platform === 'pc' ? '端游' : b.platform === 'mobile' ? '手游' : '--'}</span></div>
+        <div class="detail-row"><span class="label">微信号</span><span class="value">${b.wechat || '--'}</span></div>
         <div class="detail-row"><span class="label">联系方式</span><span class="value">${b.examineeContact}</span></div>
-        <div class="detail-row"><span class="label">游戏ID</span><span class="value">${b.gameId}</span></div>
-        <div class="detail-row"><span class="label">大区/服务器</span><span class="value">${b.server}</span></div>
-        <div class="detail-row"><span class="label">当前段位</span><span class="value">${b.rank}</span></div>
         ${b.seasonRank ? `<div class="detail-row"><span class="label">赛季段位</span><span class="value">${b.seasonRank}</span></div>` : ''}
         ${b.kd ? `<div class="detail-row"><span class="label">KD</span><span class="value">${b.kd}</span></div>` : ''}
       </div>
@@ -1425,14 +1812,16 @@ function viewDetail(id) {
         ${b.acceptedAt ? `<div class="detail-row"><span class="label">接单时间</span><span class="value">${fmtFullTime(b.acceptedAt)}</span></div>` : ''}
         ${b.assessingAt ? `<div class="detail-row"><span class="label">考核开始</span><span class="value">${fmtFullTime(b.assessingAt)}</span></div>` : ''}
         ${b.completedAt ? `<div class="detail-row"><span class="label">完成时间</span><span class="value">${fmtFullTime(b.completedAt)}</span></div>` : ''}
-        ${b.examinerName ? `<div class="detail-row"><span class="label">考官</span><span class="value">${b.examinerName}（${b.examinerContact}）</span></div>` : ''}
+        ${b.examinerName ? `<div class="detail-row"><span class="label">考官</span><span class="value">${b.examinerName}</span></div>` : ''}
+        ${b.examinerName ? `<div id="examinerQrPlaceholder" style="margin-top:12px;"></div>` : ''}
       </div>
       ${b.notes ? `<div class="detail-section"><h4>备注</h4><div class="feedback-box">${b.notes}</div></div>` : ''}
-      ${b.score !== null ? `
+      ${b.status === 'completed' ? `
         <div class="detail-section">
           <h4>考核结果</h4>
-          <div class="detail-row"><span class="label">评分</span><span class="value">${renderScoreDisplay(b.score)}</span></div>
-          <div style="margin-top:12px;"><div class="detail-row" style="margin-bottom:6px;"><span class="label">反馈</span></div><div class="feedback-box">${b.feedback}</div></div>
+          ${b.passed !== null && b.passed !== undefined ? `<div class="detail-row"><span class="label">是否通过</span><span class="value"><span class="result-badge ${b.passed ? 'pass' : 'fail'}">${b.passed ? '✅ 考核通过' : '❌ 未通过'}</span></span></div>` : ''}
+          ${b.score !== null ? `<div class="detail-row"><span class="label">评分</span><span class="value">${renderScoreDisplay(b.score)}</span></div>` : ''}
+          ${b.feedback ? `<div style="margin-top:12px;"><div class="detail-row" style="margin-bottom:6px;"><span class="label">反馈</span></div><div class="feedback-box">${b.feedback}</div></div>` : ''}
         </div>
       ` : ''}
     </div>
@@ -1440,6 +1829,15 @@ function viewDetail(id) {
       <button class="btn btn-outline" onclick="closeModal()">关闭</button>
     </div>
   `);
+  // Async: fetch examiner QR code if examiner assigned
+  if (b.examinerName) {
+    getExaminerQrCode(b.examinerName).then(qr => {
+      const ph = document.getElementById('examinerQrPlaceholder');
+      if (ph && qr) {
+        ph.innerHTML = `<div class="detail-row"><span class="label">微信二维码</span></div><div style="margin-top:8px;"><img src="${qr}" style="max-width:180px;border-radius:8px;border:1px solid var(--border);" /></div>`;
+      }
+    });
+  }
 }
 
 // ========== Criteria Reference Modal ==========
@@ -1603,16 +2001,16 @@ async function init() {
     if (loadBookingsLocal().length === 0) {
       const now = Date.now();
       const demo = [
-        { id: 'DEMO001', examineeName: 'ShadowBlade', examineeContact: 'demo_qq_001', game: 'valorant', gender: 'male', platform: 'pc', rank: '金', gameId: 'ShadowBlade#CN1', server: '腾讯服', preferredTime: new Date(now + 86400000).toISOString().slice(0,16), notes: '擅长决斗者位置，主练Jett和Reyna', assessmentType: null, assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null, status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 3600000 },
-        { id: 'DEMO002', examineeName: 'ClearLove77', examineeContact: 'demo_qq_002', game: 'lol', gender: 'male', platform: 'pc', rank: '钻石', gameId: 'ClearLove77', server: '电信一区 艾欧尼亚', preferredTime: new Date(now + 172800000).toISOString().slice(0,16), notes: '打野位，擅长盲僧、皇子', assessmentType: null, assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null, status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 7200000 },
-        { id: 'DEMO003', examineeName: 'DeltaHunter', examineeContact: 'demo_qq_003', game: 'delta', gender: 'male', platform: 'pc', rank: '铂金', gameId: 'DeltaHunter_PC', server: '微信区', preferredTime: new Date(now + 86400000 * 3).toISOString().slice(0,16), notes: '突击位，擅长M4A1', assessmentType: 'companion', assessmentMode: 'single', assessmentTier: 2, seasonRank: '黑鹰5', kd: '2.1', status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 1800000 },
-        { id: 'DEMO004', examineeName: 'GoddessGamer', examineeContact: 'demo_qq_004', game: 'delta', gender: 'female', platform: 'mobile', rank: '黄金', gameId: 'GoddessGamer_M', server: 'QQ区', preferredTime: new Date(now + 86400000 * 2).toISOString().slice(0,16), notes: '熟悉地图机制，想考娱乐考核', assessmentType: 'entertainment', assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null, status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 900000 },
-        { id: 'DEMO005', examineeName: 'ProEscorts', examineeContact: 'demo_qq_005', game: 'delta', gender: 'male', platform: 'pc', rank: '大师', gameId: 'ProEscorts_PC', server: '微信区', preferredTime: new Date(now + 86400000 * 2).toISOString().slice(0,16), notes: '老手申请双考技术档', assessmentType: 'companion', assessmentMode: 'dual', assessmentTier: 2, seasonRank: '巅峰', kd: '2.1', status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 600000 }
+        { id: 'DEMO001', examineeName: 'DeltaHunter', examineeContact: 'demo_qq_003', game: 'delta', gender: 'male', platform: 'pc', wechat: 'DeltaHunter_WX', preferredTime: new Date(now + 86400000 * 3).toISOString().slice(0,16), notes: '突击位，擅长M4A1，希望考核枪法和战术配合', assessmentType: 'companion', assessmentMode: 'single', assessmentTier: 2, seasonRank: '黑鹰5', kd: '2.1', status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 1800000 },
+        { id: 'DEMO002', examineeName: 'GoddessGamer', examineeContact: 'demo_qq_004', game: 'delta', gender: 'female', platform: 'mobile', wechat: 'GoddessGamer_WX', preferredTime: new Date(now + 86400000 * 2).toISOString().slice(0,16), notes: '熟悉地图机制，想考娱乐考核', assessmentType: 'entertainment', assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null, status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 900000 },
+        { id: 'DEMO003', examineeName: 'ProEscorts', examineeContact: 'demo_qq_005', game: 'delta', gender: 'male', platform: 'pc', wechat: 'ProEscorts_WX', preferredTime: new Date(now + 86400000 * 2).toISOString().slice(0,16), notes: '老手申请双考技术档，账号巅峰段位KD2.1', assessmentType: 'companion', assessmentMode: 'dual', assessmentTier: 2, seasonRank: '巅峰', kd: '2.1', status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, createdAt: now - 600000 }
       ];
       saveBookingsLocal(demo);
     }
   }
   await fetchBookings();
+  render(); // Always render on initial load
+  if (state.session) initNotifications();
   setInterval(() => { if (state.session) fetchBookings(); }, 10000);
 }
 init();

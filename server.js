@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +15,7 @@ function readDB() {
   try {
     return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
   } catch {
-    return { bookings: [] };
+    return { bookings: [], users: [] };
   }
 }
 
@@ -27,35 +28,24 @@ function findBooking(id) {
   return { db, index: db.bookings.findIndex(b => b.id === id) };
 }
 
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+function findUser(db, username) {
+  return db.users.find(u => u.username === username);
+}
+
 // ========== Seed Demo Data ==========
 function seedIfEmpty() {
   const db = readDB();
-  if (db.bookings.length > 0) return;
+  if (!db.users) db.users = [];
+  if (db.bookings.length > 0) { writeDB(db); return; }
   const now = Date.now();
   db.bookings = [
     {
-      id: 'DEMO001', examineeName: 'ShadowBlade', examineeContact: 'demo_qq_001',
-      game: 'valorant', gender: 'male', platform: 'pc', rank: '金', gameId: 'ShadowBlade#CN1', server: '腾讯服',
-      preferredTime: new Date(now + 86400000).toISOString().slice(0, 16),
-      notes: '擅长决斗者位置，主练Jett和Reyna，希望考核实战意识和残局处理',
-      assessmentType: null, assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null,
-      status: 'pending', examinerName: null, examinerContact: null,
-      acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null,
-      createdAt: now - 3600000
-    },
-    {
-      id: 'DEMO002', examineeName: 'ClearLove77', examineeContact: 'demo_qq_002',
-      game: 'lol', gender: 'male', platform: 'pc', rank: '钻石', gameId: 'ClearLove77', server: '电信一区 艾欧尼亚',
-      preferredTime: new Date(now + 172800000).toISOString().slice(0, 16),
-      notes: '打野位，擅长盲僧、皇子，希望考核前期节奏和团战开团判断',
-      assessmentType: null, assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null,
-      status: 'pending', examinerName: null, examinerContact: null,
-      acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null,
-      createdAt: now - 7200000
-    },
-    {
-      id: 'DEMO003', examineeName: 'DeltaHunter', examineeContact: 'demo_qq_003',
-      game: 'delta', gender: 'male', platform: 'pc', rank: '铂金', gameId: 'DeltaHunter_PC', server: '微信区',
+      id: 'DEMO001', examineeName: 'DeltaHunter', examineeContact: 'demo_qq_003',
+      game: 'delta', gender: 'male', platform: 'pc', wechat: 'DeltaHunter_WX',
       preferredTime: new Date(now + 86400000 * 3).toISOString().slice(0, 16),
       notes: '突击位，擅长M4A1，希望考核枪法和战术配合',
       assessmentType: 'companion', assessmentMode: 'single', assessmentTier: 2, seasonRank: '黑鹰5', kd: '2.1',
@@ -64,8 +54,8 @@ function seedIfEmpty() {
       createdAt: now - 1800000
     },
     {
-      id: 'DEMO004', examineeName: 'GoddessGamer', examineeContact: 'demo_qq_004',
-      game: 'delta', gender: 'female', platform: 'mobile', rank: '黄金', gameId: 'GoddessGamer_M', server: 'QQ区',
+      id: 'DEMO002', examineeName: 'GoddessGamer', examineeContact: 'demo_qq_004',
+      game: 'delta', gender: 'female', platform: 'mobile', wechat: 'GoddessGamer_WX',
       preferredTime: new Date(now + 86400000 * 2).toISOString().slice(0, 16),
       notes: '熟悉地图机制，想考娱乐考核',
       assessmentType: 'entertainment', assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null,
@@ -74,8 +64,8 @@ function seedIfEmpty() {
       createdAt: now - 900000
     },
     {
-      id: 'DEMO005', examineeName: 'ProEscorts', examineeContact: 'demo_qq_005',
-      game: 'delta', gender: 'male', platform: 'pc', rank: '大师', gameId: 'ProEscorts_PC', server: '微信区',
+      id: 'DEMO003', examineeName: 'ProEscorts', examineeContact: 'demo_qq_005',
+      game: 'delta', gender: 'male', platform: 'pc', wechat: 'ProEscorts_WX',
       preferredTime: new Date(now + 86400000 * 2).toISOString().slice(0, 16),
       notes: '老手申请双考技术档，账号巅峰段位KD2.1',
       assessmentType: 'companion', assessmentMode: 'dual', assessmentTier: 2, seasonRank: '巅峰', kd: '2.1',
@@ -115,9 +105,10 @@ app.post('/api/bookings', (req, res) => {
     acceptedAt: null,
     assessingAt: null,
     completedAt: null,
-    score: null,
-    feedback: null,
-    createdAt: Date.now()
+      score: null,
+      feedback: null,
+      passed: null,
+      createdAt: Date.now()
   };
   db.bookings.unshift(booking);
   writeDB(db);
@@ -157,6 +148,7 @@ app.patch('/api/bookings/:id/complete', (req, res) => {
   b.status = 'completed';
   b.score = req.body.score;
   b.feedback = req.body.feedback;
+  b.passed = req.body.passed;
   b.completedAt = Date.now();
   writeDB(db);
   res.json(b);
@@ -183,8 +175,76 @@ app.patch('/api/bookings/:id', (req, res) => {
 
 // Delete all bookings (admin reset)
 app.delete('/api/bookings', (req, res) => {
-  writeDB({ bookings: [] });
+  const db = readDB();
+  db.bookings = [];
+  writeDB(db);
   res.json({ message: 'All bookings deleted' });
+});
+
+// ========== User Auth Routes ==========
+
+// Get single user (for checking if exists + getting QR code)
+app.get('/api/users/:username', (req, res) => {
+  const db = readDB();
+  const user = findUser(db, req.params.username);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  // Don't return password hash
+  res.json({ username: user.username, role: user.role, qrCode: user.qrCode, createdAt: user.createdAt });
+});
+
+// Register new user
+app.post('/api/users/register', (req, res) => {
+  const db = readDB();
+  if (!db.users) db.users = [];
+  const { username, password, role, qrCode } = req.body;
+  if (!username || !password || !role) return res.status(400).json({ error: 'Missing required fields' });
+  if (findUser(db, username)) return res.status(409).json({ error: '用户名已存在' });
+  const user = {
+    username,
+    passwordHash: hashPassword(password),
+    role,
+    qrCode: qrCode || null,
+    createdAt: Date.now()
+  };
+  db.users.push(user);
+  writeDB(db);
+  res.status(201).json({ username: user.username, role: user.role, qrCode: user.qrCode, createdAt: user.createdAt });
+});
+
+// Login (verify password)
+app.post('/api/users/login', (req, res) => {
+  const db = readDB();
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
+  const user = findUser(db, username);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  if (user.passwordHash !== hashPassword(password)) return res.status(401).json({ error: '密码错误' });
+  res.json({ username: user.username, role: user.role, qrCode: user.qrCode, createdAt: user.createdAt });
+});
+
+// Change password
+app.patch('/api/users/:username/password', (req, res) => {
+  const db = readDB();
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) return res.status(400).json({ error: 'Missing passwords' });
+  const user = findUser(db, req.params.username);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  if (user.passwordHash !== hashPassword(oldPassword)) return res.status(401).json({ error: '原密码错误' });
+  user.passwordHash = hashPassword(newPassword);
+  writeDB(db);
+  res.json({ username: user.username, message: 'Password changed' });
+});
+
+// Change QR code
+app.patch('/api/users/:username/qrcode', (req, res) => {
+  const db = readDB();
+  const { qrCode } = req.body;
+  if (!qrCode) return res.status(400).json({ error: 'Missing QR code' });
+  const user = findUser(db, req.params.username);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  user.qrCode = qrCode;
+  writeDB(db);
+  res.json({ username: user.username, qrCode: user.qrCode, message: 'QR code updated' });
 });
 
 // Health check
