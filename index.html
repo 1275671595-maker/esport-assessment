@@ -500,7 +500,7 @@ const DELTA_CRITERIA = {
 
 // ========== Delta Force Exam Notes (Precautions) ==========
 const DELTA_NOTES = [
-  { icon: '📹', text: '考试期间需要全程使用外设录手和电脑屏幕，考核通过后继续拍摄机箱和电脑桌面（禁止一切作弊行为）。一档（娱技）考生禁用六套awm' },
+  { icon: '📹', text: '考试期间需要全程使用外设录手和电脑屏幕，考核通过后继续拍摄机箱和电脑桌面（禁止一切作弊行为）。如果是手游端则不需要外设录手。一档（娱技）考生禁用六套awm' },
   { icon: '💰', text: '考核首次免费，后续每次补考费20元' },
   { icon: '🗺️', text: '考试地图（禁长弓溪谷，永夜大坝可兼容机密接单）由考生选择，考官干员只会选择女医生且只会对考生进行少量的帮助，考官全程听从考生指挥' },
   { icon: '⚖️', text: '考官会根据考生表现和服务态度适当放宽需求（例：考生双考技术杀了21个，但意识与服务态度特别让考官满意，也会给予通过；反之即使杀够了，全程无沟通无交流也不会给予通过）' }
@@ -1601,7 +1601,7 @@ function renderTransferForm() {
   return `
     <div class="form-container">
       <h2 class="form-title">📦 平移的打手登记</h2>
-      <p class="form-desc">从其他俱乐部或店铺平移过来的打手，请填写基础信息并上传5项证明资料。提交后只有最高权限考官（邀请码 10424）可见。</p>
+      <p class="form-desc">从其他俱乐部或店铺平移过来的打手，请填写基础信息并上传5项证明资料。提交后由内部指定考官审核。</p>
       <form id="transferForm" onsubmit="submitTransfer(event)">
         <div class="form-row">
           <div class="form-group">
@@ -1680,7 +1680,7 @@ async function submitTransfer(e) {
   };
   try {
     await createBookingData(booking);
-    toast('平移登记提交成功！等待最高权限考官审核', 'success');
+    toast('平移登记提交成功！等待审核', 'success');
     state.transferMaterials = {};
     state.transferForm = {};
     state.currentTab = 'list';
