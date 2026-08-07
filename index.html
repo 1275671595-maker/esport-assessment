@@ -1244,7 +1244,38 @@ function renderExaminee() {
   const active = my.filter(b => ['accepted','assessing'].includes(b.status)).length;
   const done = my.filter(b => b.status === 'completed').length;
 
-  const createSubTab = state.createSubTab || 'normal';
+  let createSubTab = state.createSubTab || 'normal';
+
+  // Check if there's an active normal booking (pending/accepted/assessing)
+  const hasActiveNormal = my.some(b => (b.type || 'normal') === 'normal' && ['pending','accepted','assessing'].includes(b.status));
+  // Check if there's an active transfer booking
+  const hasActiveTransfer = my.some(b => (b.type || 'normal') === 'transfer' && ['pending','accepted','assessing'].includes(b.status));
+
+  // Auto-switch subtab if current one is blocked
+  if (createSubTab === 'normal' && hasActiveNormal && !hasActiveTransfer) createSubTab = 'transfer';
+  if (createSubTab === 'transfer' && hasActiveTransfer && !hasActiveNormal) createSubTab = 'normal';
+
+  // Build subtabs - hide blocked ones
+  let subtabsHtml = '<div class="subtabs">';
+  if (!hasActiveNormal) subtabsHtml += `<button class="subtab ${createSubTab==='normal'?'active':''}" onclick="setCreateSubTab('normal')">🎯 正常考核</button>`;
+  if (!hasActiveTransfer) subtabsHtml += `<button class="subtab ${createSubTab==='transfer'?'active':''}" onclick="setCreateSubTab('transfer')">📦 平移的打手</button>`;
+  subtabsHtml += '</div>';
+
+  // Determine which form/notice to show
+  let createContentHtml = '';
+  if (createSubTab === 'normal') {
+    if (hasActiveNormal) {
+      createContentHtml = renderActiveBookingNotice('normal');
+    } else {
+      createContentHtml = renderBookingForm();
+    }
+  } else {
+    if (hasActiveTransfer) {
+      createContentHtml = renderActiveBookingNotice('transfer');
+    } else {
+      createContentHtml = renderTransferForm();
+    }
+  }
 
   return `
     <div class="stats-row">
@@ -1256,13 +1287,23 @@ function renderExaminee() {
       <button class="tab ${state.currentTab==='create'?'active':''}" onclick="setTab('create')">📝 发起预约</button>
       <button class="tab ${state.currentTab==='list'?'active':''}" onclick="setTab('list')">📋 我的预约 <span class="count">${my.length}</span></button>
     </div>
-    ${state.currentTab === 'create' ? `
-      <div class="subtabs">
-        <button class="subtab ${createSubTab==='normal'?'active':''}" onclick="setCreateSubTab('normal')">🎯 正常考核</button>
-        <button class="subtab ${createSubTab==='transfer'?'active':''}" onclick="setCreateSubTab('transfer')">📦 平移的打手</button>
-      </div>
-      ${createSubTab === 'normal' ? renderBookingForm() : renderTransferForm()}
-    ` : renderExamineeBookings(my)}
+    ${state.currentTab === 'create' ? subtabsHtml + createContentHtml : renderExamineeBookings(my)}
+  `;
+}
+
+function renderActiveBookingNotice(type) {
+  const typeName = type === 'transfer' ? '平移登记' : '考核预约';
+  const icon = type === 'transfer' ? '📦' : '🎯';
+  return `
+    <div class="form-container" style="text-align:center;padding:48px 24px;">
+      <div style="font-size:64px;margin-bottom:16px;">${icon}</div>
+      <h2 style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:12px;">您有一个进行中的${typeName}</h2>
+      <p style="color:var(--text-muted);font-size:.9rem;line-height:1.6;margin-bottom:24px;">
+        在当前${typeName}完成前，无法发起新的${typeName}。<br>
+        如需取消或修改，请到"我的预约"中操作。
+      </p>
+      <button class="btn btn-primary btn-lg" onclick="setTab('list')">📋 查看我的预约</button>
+    </div>
   `;
 }
 
