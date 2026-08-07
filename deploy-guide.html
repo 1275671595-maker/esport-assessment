@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>部署指南 - 电竞考核匹配平台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; line-height: 1.7; }
+.container { max-width: 860px; margin: 0 auto; padding: 40px 20px; }
+h1 { font-size: 1.8rem; margin-bottom: 8px; color: #4f46e5; }
+.subtitle { color: #666; margin-bottom: 32px; font-size: .95rem; }
+h2 { font-size: 1.3rem; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #e0e0e0; }
+h3 { font-size: 1.05rem; margin: 20px 0 8px; color: #333; }
+.step { background: #fff; border-radius: 12px; padding: 20px 24px; margin: 12px 0; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-left: 4px solid #4f46e5; }
+.step-num { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; background: #4f46e5; color: #fff; border-radius: 50%; font-size: .85rem; font-weight: 700; margin-right: 8px; }
+.step-title { font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; margin-bottom: 8px; }
+.step-body { padding-left: 36px; color: #444; font-size: .92rem; }
+.step-body p { margin: 6px 0; }
+code, .cmd { background: #1e1e2e; color: #a6e3a1; padding: 2px 8px; border-radius: 4px; font-family: 'Cascadia Code', Consolas, monospace; font-size: .85rem; }
+.code-block { background: #1e1e2e; color: #cdd6f4; padding: 14px 18px; border-radius: 8px; font-family: 'Cascadia Code', Consolas, monospace; font-size: .83rem; margin: 8px 0; overflow-x: auto; line-height: 1.5; }
+.code-block .comment { color: #6c7086; }
+.code-block .highlight { color: #f9e2af; }
+.note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: .88rem; }
+.note-blue { background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: .88rem; }
+.success { background: #d1fae5; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: .88rem; }
+.warn { background: #fee2e2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: .88rem; }
+.toc { background: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.toc h3 { margin-top: 0; }
+.toc ol { padding-left: 20px; }
+.toc li { margin: 4px 0; }
+.toc a { color: #4f46e5; text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+.platform-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: .78rem; font-weight: 600; margin-left: 8px; }
+.badge-free { background: #d1fae5; color: #065f46; }
+.badge-easy { background: #dbeafe; color: #1e40af; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+.summary-card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); text-align: center; }
+.summary-card .num { font-size: 1.8rem; font-weight: 800; color: #4f46e5; }
+.summary-card .label { font-size: .82rem; color: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>电竞考核匹配平台 - 部署指南</h1>
+<p class="subtitle">将平台部署到公网，让考官和考生通过同一网址访问，数据实时共享</p>
+
+<div class="summary-grid">
+  <div class="summary-card"><div class="num">2</div><div class="label">需要注册的平台</div></div>
+  <div class="summary-card"><div class="num">~15</div><div class="label">预计耗时（分钟）</div></div>
+  <div class="summary-card"><div class="num">¥0</div><div class="label">月成本（免费额度）</div></div>
+  <div class="summary-card"><div class="num">7</div><div class="label">操作步骤</div></div>
+</div>
+
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#github">注册 GitHub + 创建仓库</a></li>
+    <li><a href="#push">推送代码到 GitHub</a></li>
+    <li><a href="#render">注册 Render + 部署</a></li>
+    <li><a href="#verify">验证部署</a></li>
+    <li><a href="#share">分享给考官和考生</a></li>
+    <li><a href="#faq">常见问题</a></li>
+  </ol>
+</div>
+
+<!-- Step 1: GitHub -->
+<h2 id="github">第一步：注册 GitHub + 创建仓库</h2>
+
+<div class="step">
+  <div class="step-title"><span class="step-num">1</span>注册 GitHub 账号</div>
+  <div class="step-body">
+    <p>打开 <a href="https://github.com/signup" target="_blank">https://github.com/signup</a></p>
+    <p>填写用户名、邮箱、密码，完成注册（如果已有账号，跳过此步）</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-title"><span class="step-num">2</span>创建新仓库</div>
+  <div class="step-body">
+    <p>登录后打开 <a href="https://github.com/new" target="_blank">https://github.com/new</a></p>
+    <p>按以下填写：</p>
+    <div class="code-block">
+<span class="highlight">Repository name</span>: esport-assessment
+<span class="highlight">Description</span>: 电竞考核匹配平台
+<span class="highlight">Visibility</span>: <span class="comment">选 Private（私有）或 Public（公开）均可</span>
+<span class="highlight">Initialize</span>: <span class="comment">⚠️ 不要勾选 "Add a README" / ".gitignore" / "license"（保持空白）</span>
+    </div>
+    <p>点击底部绿色按钮 <code>Create repository</code></p>
+    <p>创建后会看到一个页面，记住你的仓库地址，格式类似：</p>
+    <div class="code-block">https://github.com/<span class="highlight">你的用户名</span>/esport-assessment.git</div>
+  </div>
+</div>
+
+<!-- Step 2: Push -->
+<h2 id="push">第二步：推送代码到 GitHub</h2>
+
+<div class="note-blue">
+  以下命令需要在项目目录 <code>C:\Users\caoshuai\WorkBuddy\2026-08-07-18-34-46</code> 下执行。
+  可以用「终端」「命令行」「PowerShell」或「Git Bash」打开。
+  <br><br>
+  <b>把下面的 <span class="cmd">你的用户名</span> 替换成你 GitHub 的实际用户名！</b>
+</div>
+
+<div class="step">
+  <div class="step-title"><span class="step-num">3</span>关联远程仓库并推送</div>
+  <div class="step-body">
+    <p>依次执行以下命令（每行一个，逐行复制粘贴执行）：</p>
+    <div class="code-block">
+<span class="comment"># 1. 关联你的 GitHub 仓库（替换"你的用户名"）</span>
+git remote add origin https://github.com/<span class="highlight">你的用户名</span>/esport-assessment.git
+
+<span class="comment"># 2. 推送代码</span>
+git push -u origin main
+    </div>
+    <p>推送时会弹出 GitHub 登录窗口，输入你的 GitHub 账号密码或 Token 即可</p>
+    <div class="warn">
+      <b>⚠️ 注意：</b>如果提示要求输入密码，GitHub 已不支持密码登录，需要用 <b>Personal Access Token</b>：
+      <br>1. 打开 <a href="https://github.com/settings/tokens/new" target="_blank">https://github.com/settings/tokens/new</a>
+      <br>2. Note 填 "deploy"，Expiration 选 30 天，勾选 <code>repo</code> 权限
+      <br>3. 点击 Generate token，复制生成的 Token
+      <br>4. 在命令行密码提示处粘贴 Token
+    </div>
+    <p>推送成功后会显示类似 <code>main -> main</code> 的信息</p>
+  </div>
+</div>
+
+<!-- Step 3: Render -->
+<h2 id="render">第三步：注册 Render + 部署</h2>
+
+<div class="step">
+  <div class="step-title"><span class="step-num">4</span>注册 Render 账号</div>
+  <div class="step-body">
+    <p>打开 <a href="https://render.com" target="_blank">https://render.com</a></p>
+    <p>点击右上角 <code>Sign Up</code>，选择 <code>GitHub</code> 登录（推荐，自动关联）</p>
+    <p>授权 Render 访问你的 GitHub（点击 <code>Authorize Render</code>）</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-title"><span class="step-num">5</span>创建 Web Service</div>
+  <div class="step-body">
+    <p>登录后点击右上角 <code>New +</code> → 选择 <code>Web Service</code></p>
+    <p>在列表中找到你的仓库 <code>esport-assessment</code>，点击 <code>Connect</code></p>
+    <p>如果列表中没有，点击 <code>Configure account</code> 给 Render 更多权限</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-title"><span class="step-num">6</span>配置部署参数</div>
+  <div class="step-body">
+    <p>Render 会自动读取项目中的 <code>render.yaml</code>，大部分参数会自动填好。检查以下设置：</p>
+    <div class="code-block">
+<span class="highlight">Name</span>: esport-assessment <span class="comment">（或任意名称）</span>
+<span class="highlight">Runtime</span>: Node
+<span class="highlight">Build Command</span>: npm install
+<span class="highlight">Start Command</span>: node server.js
+<span class="highlight">Instance Type</span>: Free <span class="comment">（免费版）</span>
+    </div>
+    <p>其他保持默认，滚动到页面底部，点击 <code>Deploy Web Service</code></p>
+    <p>等待 1-3 分钟，状态从 <code>Building</code> → <code>Live</code></p>
+    <div class="success">
+      <b>部署成功后，页面顶部会显示公网地址，格式类似：</b><br>
+      <code>https://esport-assessment.onrender.com</code><br>
+      <b>这个地址就是考官和考生最终访问的网址！</b>
+    </div>
+  </div>
+</div>
+
+<!-- Step 4: Verify -->
+<h2 id="verify">第四步：验证部署</h2>
+
+<div class="step">
+  <div class="step-title"><span class="step-num">7</span>测试公网访问</div>
+  <div class="step-body">
+    <p>打开你的 Render 部署地址（如 <code>https://esport-assessment.onrender.com</code>）</p>
+    <p>确认：</p>
+    <p>✅ 页面正常加载，导航栏显示绿色「多设备同步」标识</p>
+    <p>✅ 可以选择角色（考生/考官）并登录</p>
+    <p>✅ 考生端能看到演示数据，可以提交新预约</p>
+    <p>✅ 考官端能接单、开始考核、提交评价</p>
+    <div class="note-blue">
+      <b>双设备测试：</b>用手机打开网址登录考生，用电脑打开网址登录考官，考生提交预约后考官端 10 秒内自动刷新看到新单。
+    </div>
+  </div>
+</div>
+
+<!-- Step 5: Share -->
+<h2 id="share">第五步：分享给考官和考生</h2>
+
+<div class="success">
+  部署完成后，你只需要把公网地址分享出去：
+  <br><br>
+  <b>发给考生：</b>"打开这个网址，选'考生'，填写信息提交预约"
+  <br>
+  <b>发给考官：</b>"打开这个网址，选'考官'，在接单大厅接单"
+  <br><br>
+  所有人访问同一个网址，数据实时共享。
+</div>
+
+<!-- FAQ -->
+<h2 id="faq">常见问题</h2>
+
+<h3>Q: Render 免费版有什么限制？</h3>
+<p>免费版服务在 15 分钟无访问后会自动休眠，下次访问时需要等 30-60 秒冷启动。对于考核预约这种低频使用场景完全够用。如果需要 7×24 不休眠，可以升级到 Starter 计划（$7/月）。</p>
+
+<h3>Q: 数据会丢失吗？</h3>
+<p>正常运行期间数据保存在服务器上不会丢失。但如果 Render 重新部署（比如你更新了代码），data.json 会被重置。如果需要永久保存数据，建议后续升级为 PostgreSQL 数据库（Render 免费提供 90 天）。</p>
+
+<h3>Q: 可以不用 GitHub 吗？</h3>
+<p>可以。替代方案：注册 <a href="https://railway.app" target="_blank">Railway.app</a>，安装 Railway CLI（<code>npm i -g @railway/cli</code>），在项目目录执行 <code>railway up</code> 即可直接部署，无需 GitHub。</p>
+
+<h3>Q: 推送代码时报错怎么办？</h3>
+<div class="code-block">
+<span class="comment"># 如果报错 "failed to push some refs"</span>
+git pull origin main --allow-unrelated-histories
+git push -u origin main
+
+<span class="comment"># 如果报错 "remote origin already exists"</span>
+git remote remove origin
+git remote add origin https://github.com/你的用户名/esport-assessment.git
+git push -u origin main
+</div>
+
+<h3>Q: Render 部署失败怎么办？</h3>
+<p>在 Render 部署页面点击 <code>Logs</code> 查看错误日志。最常见的问题是 <code>npm install</code> 失败，确认 package.json 中的依赖正确。如果遇到其他问题，把错误日志发给我，我帮你排查。</p>
+
+<hr>
+<p style="text-align:center;color:#999;font-size:.85rem;">电竞考核匹配平台 | 支持三角洲行动 / 无畏契约 / 英雄联盟</p>
+</div>
+</body>
+</html>
