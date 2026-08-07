@@ -42,7 +42,7 @@ function seedIfEmpty() {
   if (!db.users) db.users = [];
   if (db.bookings.length > 0) { writeDB(db); return; }
   const now = Date.now();
-  db.bookings = [
+    db.bookings = [
     {
       id: 'DEMO001', examineeName: 'DeltaHunter', examineeContact: 'demo_qq_003',
       game: 'delta', gender: 'male', platform: 'pc', wechat: 'DeltaHunter_WX',
@@ -50,7 +50,7 @@ function seedIfEmpty() {
       notes: '突击位，擅长M4A1，希望考核枪法和战术配合',
       assessmentType: 'companion', assessmentMode: 'single', assessmentTier: 2, seasonRank: '黑鹰5', kd: '2.1',
       status: 'pending', examinerName: null, examinerContact: null,
-      acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null,
+      acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, passed: null, transferredCount: 0,
       createdAt: now - 1800000
     },
     {
@@ -60,7 +60,7 @@ function seedIfEmpty() {
       notes: '熟悉地图机制，想考娱乐考核',
       assessmentType: 'entertainment', assessmentMode: null, assessmentTier: null, seasonRank: null, kd: null,
       status: 'pending', examinerName: null, examinerContact: null,
-      acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null,
+      acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, passed: null, transferredCount: 0,
       createdAt: now - 900000
     },
     {
@@ -70,7 +70,7 @@ function seedIfEmpty() {
       notes: '老手申请双考技术档，账号巅峰段位KD2.1',
       assessmentType: 'companion', assessmentMode: 'dual', assessmentTier: 2, seasonRank: '巅峰', kd: '2.1',
       status: 'pending', examinerName: null, examinerContact: null,
-      acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null,
+      acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, passed: null, transferredCount: 0,
       createdAt: now - 600000
     }
   ];
@@ -108,6 +108,7 @@ app.post('/api/bookings', (req, res) => {
       score: null,
       feedback: null,
       passed: null,
+      transferredCount: 0,
       createdAt: Date.now()
   };
   db.bookings.unshift(booking);
@@ -160,6 +161,22 @@ app.patch('/api/bookings/:id/cancel', (req, res) => {
   if (index === -1) return res.status(404).json({ error: 'Booking not found' });
   const b = db.bookings[index];
   b.status = 'cancelled';
+  writeDB(db);
+  res.json(b);
+});
+
+// Transfer booking (examiner returns booking to hall)
+app.patch('/api/bookings/:id/transfer', (req, res) => {
+  const { db, index } = findBooking(req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Booking not found' });
+  const b = db.bookings[index];
+  if (!['accepted', 'assessing'].includes(b.status)) return res.status(400).json({ error: '只有已接单的预约才能转单' });
+  b.status = 'pending';
+  b.examinerName = null;
+  b.examinerContact = null;
+  b.acceptedAt = null;
+  b.assessingAt = null;
+  b.transferredCount = (b.transferredCount || 0) + 1;
   writeDB(db);
   res.json(b);
 });

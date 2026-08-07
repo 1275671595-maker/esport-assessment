@@ -144,6 +144,8 @@ a { color: var(--primary); text-decoration: none; }
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
 .booking-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; transition: all .2s; border: 1px solid transparent; position: relative; overflow: hidden; }
 .booking-card:hover { box-shadow: var(--shadow-md); border-color: var(--border); }
+.booking-card.transferred { border: 2px solid var(--warning); background: linear-gradient(135deg, var(--surface) 0%, rgba(245, 158, 11, 0.04) 100%); }
+.booking-card.transferred::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--warning); }
 .booking-card .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
 .card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -567,7 +569,7 @@ async function createBookingData(booking) {
     if (!res.ok) throw new Error('Create failed');
     return res.json();
   } else {
-    const newBooking = { ...booking, id: uid(), status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, passed: null, createdAt: Date.now() };
+    const newBooking = { ...booking, id: uid(), status: 'pending', examinerName: null, examinerContact: null, acceptedAt: null, assessingAt: null, completedAt: null, score: null, feedback: null, passed: null, transferredCount: 0, createdAt: Date.now() };
     state.bookings.unshift(newBooking);
     saveBookingsLocal(state.bookings);
     return newBooking;
@@ -593,6 +595,7 @@ async function actionBooking(id, action, body) {
     else if (action === 'start') { b.status = 'assessing'; b.assessingAt = Date.now(); }
     else if (action === 'complete') { b.status = 'completed'; b.score = body.score; b.feedback = body.feedback; b.passed = body.passed; b.completedAt = Date.now(); }
     else if (action === 'cancel') { b.status = 'cancelled'; }
+    else if (action === 'transfer') { b.status = 'pending'; b.examinerName = null; b.examinerContact = null; b.acceptedAt = null; b.assessingAt = null; b.transferredCount = (b.transferredCount || 0) + 1; }
     saveBookingsLocal(state.bookings);
     return b;
   }
@@ -814,11 +817,22 @@ function checkNotifications(oldBookings, newBookings) {
       showNotification('\uD83D\uDD14', '新来单！', `考生 ${nb.examineeName} 提交了一个新的考核预约，请前往接单大厅查看。`, 'info');
     }
 
+    // Examiner: transferred booking returned to hall
+    if (role === 'examiner' && old && ['accepted', 'assessing'].includes(old.status) && nb.status === 'pending') {
+      showNotification('\uD83D\uDD04', '转单回大厅！', `考生 ${nb.examineeName} 的预约被考官转单，已回到接单大厅。`, 'warning');
+      ns.newBooking = true;
+    }
+
     // Examinee: booking was accepted
     if (role === 'examinee' && nb.examineeContact === username) {
       if ((!old || old.status === 'pending') && (nb.status === 'accepted' || nb.status === 'assessing') && !ns.accepted) {
         ns.accepted = true;
         showNotification('\u2705', '考官已接单！', `考官 ${nb.examinerName} 已接取您的预约。请在"我的预约"中查看考官微信二维码，及时联系考官。`, 'success');
+      }
+      // Examinee: examiner transferred the booking back to hall
+      if (old && ['accepted', 'assessing'].includes(old.status) && nb.status === 'pending') {
+        ns.accepted = false; // Reset so next accept triggers notification again
+        showNotification('\uD83D\uDD04', '考官已转单', `您的预约被考官转单，已重新回到接单大厅等待其他考官接取。`, 'warning');
       }
       // Examinee: assessment completed - notify pass/fail result
       if ((!old || old.status !== 'completed') && nb.status === 'completed' && !ns.completed) {
@@ -1179,7 +1193,7 @@ async function submitChangeQr() {
 
 // ========== Examinee View ==========
 function renderExaminee() {
-  const my = state.bookings.filter(b => b.examineeContact === state.session.username);
+  const my = state.bookings.filter(b => b.examineeContact === state.session.username).sort((a, b) => new Date(a.preferredTime).getTime() - new Date(b.preferredTime).getTime());
   const pending = my.filter(b => b.status === 'pending').length;
   const active = my.filter(b => ['accepted','assessing'].includes(b.status)).length;
   const done = my.filter(b => b.status === 'completed').length;
@@ -1517,7 +1531,7 @@ function renderExamineeBookings(bookings) {
 
 // ========== Examiner View ==========
 function renderExaminer() {
-  const pendingBookings = state.bookings.filter(b => b.status === 'pending');
+  const pendingBookings = state.bookings.filter(b => b.status === 'pending').sort((a, b) => new Date(a.preferredTime).getTime() - new Date(b.preferredTime).getTime());
   const myActive = state.bookings.filter(b => b.examinerContact === state.session.username && ['accepted','assessing'].includes(b.status));
   const myDone = state.bookings.filter(b => b.examinerContact === state.session.username && b.status === 'completed');
 
@@ -1563,6 +1577,7 @@ function renderBookingCard(b, canAccept, canManage) {
 
   // Build tags
   let tags = `<span class="game-tag ${game.color}">${game.icon} ${game.name}</span>`;
+  if (b.transferredCount > 0) tags += `<span class="assess-tag" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)">🔄 转单${b.transferredCount > 1 ? '×' + b.transferredCount : ''}</span>`;
   if (b.assessmentType) {
     const cfg = DELTA_CRITERIA[b.assessmentType];
     tags += `<span class="assess-tag ${b.assessmentType}">${cfg.icon} ${cfg.shortLabel}</span>`;
@@ -1580,8 +1595,8 @@ function renderBookingCard(b, canAccept, canManage) {
     actions = `<button class="btn btn-success btn-sm" onclick="acceptBooking('${b.id}')">✓ 接单</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
   }
   if (canManage && isMyExaminer) {
-    if (b.status === 'accepted') actions = `<button class="btn btn-primary btn-sm" onclick="startAssessing('${b.id}')">开始考核</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
-    else if (b.status === 'assessing') actions = `<button class="btn btn-success btn-sm" onclick="showAssessForm('${b.id}')">完成考核</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
+    if (b.status === 'accepted') actions = `<button class="btn btn-primary btn-sm" onclick="startAssessing('${b.id}')">开始考核</button><button class="btn btn-outline btn-sm" style="color:var(--warning);border-color:var(--warning)" onclick="transferBooking('${b.id}')">🔄 转单</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
+    else if (b.status === 'assessing') actions = `<button class="btn btn-success btn-sm" onclick="showAssessForm('${b.id}')">完成考核</button><button class="btn btn-outline btn-sm" style="color:var(--warning);border-color:var(--warning)" onclick="transferBooking('${b.id}')">🔄 转单</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
   }
   if (isExaminee && b.status === 'pending') {
     actions = `<button class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')">取消预约</button><button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
@@ -1590,7 +1605,7 @@ function renderBookingCard(b, canAccept, canManage) {
   if (b.status === 'cancelled' && !actions) actions = `<button class="btn btn-outline btn-sm" onclick="viewDetail('${b.id}')">详情</button>`;
 
   return `
-    <div class="booking-card">
+    <div class="booking-card${b.transferredCount > 0 && b.status === 'pending' ? ' transferred' : ''}">
       <div class="card-top">
         <div class="card-tags">${tags}</div>
         <span class="status-badge ${status.class}">${status.label}</span>
@@ -1744,6 +1759,20 @@ function cancelBooking(id) {
   });
 }
 
+function transferBooking(id) {
+  const b = state.bookings.find(x => x.id === id);
+  if (!b) return;
+  showConfirm(`确认转单？转单后该预约将重新回到接单大厅，供其他考官接取。`, async () => {
+    try {
+      await actionBooking(id, 'transfer');
+      toast('已转单，预约已回到接单大厅', 'info');
+      await refreshAfterAction();
+    } catch (e) {
+      toast('转单失败：' + e.message, 'error');
+    }
+  });
+}
+
 // ========== Detail View ==========
 function viewDetail(id) {
   const b = state.bookings.find(x => x.id === id);
@@ -1813,6 +1842,7 @@ function viewDetail(id) {
         ${b.assessingAt ? `<div class="detail-row"><span class="label">考核开始</span><span class="value">${fmtFullTime(b.assessingAt)}</span></div>` : ''}
         ${b.completedAt ? `<div class="detail-row"><span class="label">完成时间</span><span class="value">${fmtFullTime(b.completedAt)}</span></div>` : ''}
         ${b.examinerName ? `<div class="detail-row"><span class="label">考官</span><span class="value">${b.examinerName}</span></div>` : ''}
+        ${b.transferredCount > 0 ? `<div class="detail-row"><span class="label">转单次数</span><span class="value" style="color:var(--warning);font-weight:600">🔄 ${b.transferredCount} 次</span></div>` : ''}
         ${b.examinerName ? `<div id="examinerQrPlaceholder" style="margin-top:12px;"></div>` : ''}
       </div>
       ${b.notes ? `<div class="detail-section"><h4>备注</h4><div class="feedback-box">${b.notes}</div></div>` : ''}
